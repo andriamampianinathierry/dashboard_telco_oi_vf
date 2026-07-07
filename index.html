@@ -1,0 +1,4168 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DASHBOARD 2026 – TELCO OI</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+    :root {
+      --bg: #e8e8e8;
+      --surface: #f5f5f5;
+      --surface2: #efefef;
+      --border: #cccccc;
+      --accent: #0abfbc;
+      --accent2: #0abfbc;
+      --accent3: #7dd8d6;
+      --accent4: #e05c5c;
+      --text: #222222;
+      --muted: #777777;
+      --card-glow: 0 0 30px rgba(10, 191, 188, 0.10);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Sora', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #d0d0d0 0%, #e0e0e0 50%, #d0d0d0 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 18px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .logo {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, #0abfbc, #7dd8d6);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .header h1 {
+      font-size: 1.15rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
+    .header h1 span {
+      color: var(--accent);
+    }
+
+    .header-badge {
+      background: rgba(0, 201, 167, 0.1);
+      border: 1px solid rgba(0, 201, 167, 0.3);
+      color: var(--accent);
+      font-size: 0.7rem;
+      font-family: 'JetBrains Mono', monospace;
+      padding: 3px 10px;
+      border-radius: 20px;
+      letter-spacing: 0.05em;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.6;
+      }
+    }
+
+    @keyframes syncFlash {
+      0% {
+        box-shadow: inset 0 0 0 2px rgba(10, 191, 188, 0.6);
+      }
+
+      100% {
+        box-shadow: none;
+      }
+    }
+
+    .last-update {
+      font-size: 0.72rem;
+      color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .main {
+      padding: 24px 32px;
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+
+    #loadingOverlay {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      z-index: 9999;
+      transition: opacity 0.5s;
+    }
+
+    #loadingOverlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    #loadingMsg {
+      color: var(--muted);
+      font-size: 0.85rem;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    #errorBanner {
+      display: none;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      color: #c0392b;
+      padding: 14px 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      font-size: 0.82rem;
+    }
+
+    #errorBanner.show {
+      display: block;
+    }
+
+    #warnBanner {
+      display: none;
+      background: rgba(180, 120, 0, 0.08);
+      border: 1px solid rgba(180, 140, 0, 0.3);
+      color: #7a5c00;
+      padding: 10px 16px;
+      border-radius: 10px;
+      margin-bottom: 14px;
+      font-size: 0.78rem;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    #warnBanner.show {
+      display: block;
+    }
+
+    #configPanel {
+      background: var(--surface);
+      border: 1px solid rgba(0, 201, 167, 0.3);
+      border-radius: 14px;
+      padding: 20px 24px;
+      margin-bottom: 20px;
+      display: none;
+    }
+
+    #configPanel.show {
+      display: block;
+    }
+
+    #configPanel h3 {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--accent);
+      margin-bottom: 12px;
+    }
+
+    #configPanel p {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 10px;
+      line-height: 1.6;
+    }
+
+    #configPanel ol {
+      font-size: 0.78rem;
+      color: var(--muted);
+      padding-left: 20px;
+      margin-bottom: 14px;
+      line-height: 1.8;
+    }
+
+    #configPanel ol li strong {
+      color: var(--text);
+    }
+
+    .config-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    #csvUrlInput {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      padding: 9px 12px;
+      border-radius: 8px;
+      outline: none;
+      min-width: 300px;
+    }
+
+    #csvUrlInput:focus {
+      border-color: var(--accent);
+    }
+
+    .btn-load {
+      background: linear-gradient(135deg, #0abfbc, #089e9b);
+      color: #fff;
+      border: none;
+      font-family: 'Sora', sans-serif;
+      font-weight: 600;
+      font-size: 0.82rem;
+      padding: 9px 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    #mapperPanel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px 24px;
+      margin-bottom: 20px;
+      display: none;
+    }
+
+    #mapperPanel.show {
+      display: block;
+    }
+
+    #mapperPanel h3 {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--accent3);
+      margin-bottom: 10px;
+    }
+
+    #mapperPanel p {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+
+    .mapper-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .mapper-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .mapper-label {
+      font-size: 0.68rem;
+      color: var(--muted);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+    }
+
+    .mapper-label span {
+      color: var(--accent);
+    }
+
+    .mapper-field select {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'Sora', sans-serif;
+      font-size: 0.78rem;
+      padding: 7px 10px;
+      border-radius: 7px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .btn-confirm {
+      background: linear-gradient(135deg, #7dd8d6, #5ccac7);
+      color: #fff;
+      border: none;
+      font-family: 'Sora', sans-serif;
+      font-weight: 600;
+      font-size: 0.82rem;
+      padding: 9px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .filters-bar {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px 20px;
+      display: flex;
+      gap: 16px;
+      align-items: flex-end;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+      box-shadow: var(--card-glow);
+    }
+
+    /* Barre de filtres figée (sticky) — dashboard "Appels entrants" (page 1) uniquement */
+    #page1 .filters-bar {
+      position: sticky;
+      top: 122px; /* valeur de repli, recalculée dynamiquement en JS selon la hauteur réelle du header + des onglets */
+      z-index: 500; /* toujours au-dessus du contenu défilant (tableaux, graphique, cartes KPI) */
+      background: var(--surface); /* fond opaque : le contenu qui défile ne doit jamais transparaître */
+      isolation: isolate; /* force un contexte d'empilement propre et dédié pour cette barre */
+      transform: translateZ(0); /* force la mise en place sur sa propre couche de rendu (évite les bugs de superposition avec le <canvas> du graphique lors du défilement) */
+      -webkit-transform: translateZ(0);
+    }
+
+    /* Le graphique (canvas Chart.js) doit rester dans le flux normal d'empilement,
+       toujours sous la barre de filtres figée */
+    #page1 .chart-container {
+      z-index: 0;
+    }
+
+    /* Barre de filtres figée (sticky) — dashboard "Tickets/VDC" (page 2) uniquement */
+    #page2 .filters-bar {
+      position: sticky;
+      top: 122px; /* valeur de repli, recalculée dynamiquement en JS selon la hauteur réelle du header + des onglets */
+      z-index: 500; /* toujours au-dessus du contenu défilant (tableaux, graphique, cartes KPI) */
+      background: var(--surface); /* fond opaque : le contenu qui défile ne doit jamais transparaître */
+      isolation: isolate; /* force un contexte d'empilement propre et dédié pour cette barre */
+      transform: translateZ(0); /* force la mise en place sur sa propre couche de rendu (évite les bugs de superposition avec le <canvas> du graphique lors du défilement) */
+      -webkit-transform: translateZ(0);
+    }
+
+    /* Le graphique (canvas Chart.js) doit rester dans le flux normal d'empilement,
+       toujours sous la barre de filtres figée */
+    #page2 .chart-container {
+      z-index: 0;
+    }
+
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .filter-label {
+      font-size: 0.68rem;
+      font-weight: 500;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .filter-group select,
+    .filter-group input {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'Sora', sans-serif;
+      font-size: 0.82rem;
+      padding: 8px 12px;
+      border-radius: 8px;
+      outline: none;
+      cursor: pointer;
+      min-width: 150px;
+      transition: border-color 0.2s;
+    }
+
+    .filter-group input[type="date"] {
+      min-width: 140px;
+    }
+
+    /* Filtre "Sous-campagne" multi-sélection ------------------------------------ */
+    .multiselect {
+      position: relative;
+    }
+
+    .multiselect-btn {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'Sora', sans-serif;
+      font-size: 0.82rem;
+      padding: 8px 12px;
+      border-radius: 8px;
+      outline: none;
+      cursor: pointer;
+      min-width: 150px;
+      max-width: 220px;
+      text-align: left;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      transition: border-color 0.2s;
+    }
+
+    .multiselect-btn:hover {
+      border-color: var(--accent);
+    }
+
+    .multiselect-dropdown {
+      display: none;
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      z-index: 50;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      min-width: 220px;
+      max-height: 260px;
+      overflow-y: auto;
+      padding: 6px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    }
+
+    .multiselect-dropdown.open {
+      display: block;
+    }
+
+    .multiselect-actions {
+      display: flex;
+      justify-content: space-between;
+      padding: 2px 8px 8px;
+      margin-bottom: 4px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .multiselect-actions a {
+      font-size: 0.72rem;
+      color: var(--accent);
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    .multiselect-actions a:hover {
+      text-decoration: underline;
+    }
+
+    .multiselect-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.82rem;
+      color: var(--text);
+    }
+
+    .multiselect-item:hover {
+      background: rgba(10, 191, 188, 0.12);
+    }
+
+    .multiselect-item input[type="checkbox"] {
+      cursor: pointer;
+    }
+
+    .btn-apply {
+      background: linear-gradient(135deg, #0abfbc, #089e9b);
+      color: #fff;
+      border: none;
+      font-family: 'Sora', sans-serif;
+      font-weight: 600;
+      font-size: 0.82rem;
+      padding: 9px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .btn-reset {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-family: 'Sora', sans-serif;
+      font-size: 0.82rem;
+      padding: 9px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .section-title {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+
+    .kpi-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px 20px;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .kpi-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+    }
+
+    .kpi-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--card-accent, transparent);
+    }
+
+    .kpi-card.green::before {
+      background: linear-gradient(90deg, #0abfbc, transparent);
+    }
+
+    .kpi-card.blue::before {
+      background: linear-gradient(90deg, #7dd8d6, transparent);
+    }
+
+    .kpi-card.amber::before {
+      background: linear-gradient(90deg, #b0b0b0, transparent);
+    }
+
+    .kpi-card.red::before {
+      background: linear-gradient(90deg, #e05c5c, transparent);
+    }
+
+    .kpi-card.purple::before {
+      background: linear-gradient(90deg, #aaaaaa, transparent);
+    }
+
+    .kpi-card.teal::before {
+      background: linear-gradient(90deg, #5ccac7, transparent);
+    }
+
+    .kpi-icon {
+      font-size: 1.2rem;
+      margin-bottom: 10px;
+      opacity: 0.85;
+    }
+
+    .kpi-label {
+      font-size: 0.7rem;
+      color: var(--muted);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      margin-bottom: 6px;
+    }
+
+    .kpi-value {
+      font-size: 1.8rem;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: -0.03em;
+      line-height: 1;
+    }
+
+    .kpi-card.green .kpi-value {
+      color: #0abfbc;
+    }
+
+    .kpi-card.blue .kpi-value {
+      color: #7dd8d6;
+    }
+
+    .kpi-card.amber .kpi-value {
+      color: #666;
+    }
+
+    .kpi-card.red .kpi-value {
+      color: #e05c5c;
+    }
+
+    .kpi-card.purple .kpi-value {
+      color: #555;
+    }
+
+    .kpi-card.teal .kpi-value {
+      color: #5ccac7;
+    }
+
+    /* Mise en forme conditionnelle des indicateurs (seuils) */
+    .kpi-value.threshold-good {
+      color: #0abfbc !important;
+    }
+
+    .kpi-value.threshold-bad {
+      color: #e05c5c !important;
+    }
+
+    .threshold-good {
+      color: #0abfbc;
+      font-weight: 600;
+    }
+
+    .threshold-bad {
+      color: #e05c5c;
+      font-weight: 600;
+    }
+
+    .kpi-objectif {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      margin-top: 4px;
+      font-size: 11px;
+    }
+
+    .kpi-objectif-label {
+      opacity: 0.65;
+    }
+
+    .kpi-ecart {
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .kpi-ecart.ecart-good {
+      color: #2fbf71;
+    }
+
+    .kpi-ecart.ecart-bad {
+      color: #e05c5c;
+    }
+
+    .kpi-sub {
+      font-size: 0.68rem;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .kpi-dual {
+      display: flex;
+      gap: 14px;
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid var(--border);
+    }
+
+    .kpi-dual-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      flex: 1;
+    }
+
+    .kpi-dual-label {
+      font-size: 0.58rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 500;
+    }
+
+    .kpi-dual-value {
+      font-size: 1.05rem;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: -0.02em;
+    }
+
+    .kpi-dual-value.tiffany {
+      color: #0abfbc;
+    }
+
+    .kpi-dual-value.grey {
+      color: #888;
+    }
+
+    .kpi-dual-divider {
+      width: 1px;
+      background: var(--border);
+      align-self: stretch;
+    }
+
+    .full-width-panel {
+      margin-bottom: 24px;
+    }
+
+    .dash-table td.num-tiffany {
+      text-align: right;
+      color: #0abfbc;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.76rem;
+      font-weight: 600;
+    }
+
+    .dash-table td.num-red {
+      text-align: right;
+      color: #e05c5c;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.76rem;
+      font-weight: 600;
+    }
+
+    .dash-table td.num-grey {
+      text-align: right;
+      color: #666;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.76rem;
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .panel-title {
+      font-size: 0.82rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+
+    .panel-badge {
+      font-size: 0.65rem;
+      color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      padding: 2px 8px;
+      border-radius: 20px;
+    }
+
+    .panel-body {
+      padding: 16px 20px;
+    }
+
+    .dash-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.78rem;
+    }
+
+    .dash-table th {
+      text-align: left;
+      padding: 8px 12px;
+      color: #ffffff;
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      border-bottom: 1px solid var(--border);
+      background: #096475;
+    }
+
+    .dash-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(150, 150, 150, 0.3);
+      color: var(--text);
+    }
+
+    .dash-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .dash-table tr:hover td {
+      background: rgba(0, 0, 0, 0.03);
+    }
+
+    .dash-table .mono {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.76rem;
+    }
+
+    .dash-table .num {
+      text-align: right;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 0.68rem;
+      font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .pill-green {
+      background: rgba(10, 191, 188, 0.15);
+      color: #0abfbc;
+    }
+
+    .pill-amber {
+      background: rgba(120, 120, 120, 0.15);
+      color: #555;
+    }
+
+    .pill-red {
+      background: rgba(224, 92, 92, 0.15);
+      color: #e05c5c;
+    }
+
+    .chart-container {
+      position: relative;
+      height: 300px;
+      padding: 8px 4px 0;
+    }
+
+    .full-panel {
+      margin-bottom: 24px;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 30px;
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .table-scroll {
+      overflow-x: auto;
+    }
+
+    .data-info {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+      padding: 10px 16px;
+      background: rgba(10, 191, 188, 0.04);
+      border: 1px solid rgba(10, 191, 188, 0.15);
+      border-radius: 10px;
+      font-size: 0.72rem;
+      color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .data-info strong {
+      color: var(--accent);
+    }
+
+    .btn-sync {
+      background: rgba(10, 191, 188, 0.15);
+      border: 1px solid rgba(10, 191, 188, 0.4);
+      color: var(--accent);
+      font-family: 'Sora', sans-serif;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 5px 14px;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-sync:hover {
+      background: rgba(10, 191, 188, 0.25);
+    }
+
+    .btn-sync:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-export {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 30px;
+      background: linear-gradient(180deg, rgba(10, 191, 188, 0.28), rgba(10, 191, 188, 0.12));
+      border: 1px solid rgba(10, 191, 188, 0.45);
+      border-radius: 7px;
+      color: var(--accent);
+      font-size: 0.95rem;
+      line-height: 1;
+      cursor: pointer;
+      margin-left: auto;
+      box-shadow:
+        0 2px 0 rgba(0, 0, 0, 0.35),
+        0 3px 6px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+      transition: all 0.12s ease;
+    }
+
+    .btn-export:hover {
+      background: linear-gradient(180deg, rgba(10, 191, 188, 0.4), rgba(10, 191, 188, 0.18));
+    }
+
+    .btn-export:active {
+      transform: translateY(2px);
+      box-shadow:
+        0 0 0 rgba(0, 0, 0, 0.35),
+        0 1px 2px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    }
+
+    /* ── NAVIGATION TABS ── */
+    .nav-tabs {
+      display: flex;
+      gap: 10px;
+      background: var(--surface);
+      border-bottom: 2px solid var(--border);
+      padding: 10px 32px;
+      position: sticky;
+      top: 72px;
+      z-index: 90;
+      max-width: 100%;
+      align-items: center;
+    }
+
+    .nav-tab {
+      padding: 9px 20px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--muted);
+      cursor: pointer;
+      border: 2px solid var(--border);
+      border-radius: 22px;
+      background: var(--bg);
+      transition: all 0.2s;
+      letter-spacing: 0.01em;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      white-space: nowrap;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.07);
+    }
+
+    .nav-tab:hover {
+      color: var(--text);
+      background: var(--surface2);
+      border-color: #bbb;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    }
+
+    .nav-tab.active {
+      color: #fff;
+      background: linear-gradient(135deg, #0abfbc, #089e9b);
+      border-color: #0abfbc;
+      box-shadow: 0 4px 14px rgba(10, 191, 188, 0.35);
+    }
+
+    .page {
+      display: none;
+    }
+
+    .page.active {
+      display: block;
+    }
+
+    /* ── TABLEAU COMPARAISON MENSUELLE ── */
+    .monthly-table-wrap {
+      overflow-x: auto;
+      margin-bottom: 0;
+    }
+
+    .monthly-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.76rem;
+      white-space: nowrap;
+    }
+
+    .monthly-table thead tr:first-child th {
+      background: #096475;
+      padding: 8px 14px;
+      color: #ffffff;
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      border-bottom: 2px solid var(--border);
+      text-align: center;
+    }
+
+    .monthly-table thead tr:first-child th:first-child {
+      text-align: left;
+      position: sticky;
+      left: 0;
+      z-index: 2;
+      background: #096475;
+    }
+
+    .monthly-table thead tr:nth-child(2) th {
+      background: #096475;
+      padding: 6px 10px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: #ffffff;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      border-bottom: 1px solid var(--border);
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .monthly-table thead tr:nth-child(2) th:first-child {
+      text-align: left;
+      position: sticky;
+      left: 0;
+      z-index: 2;
+      background: #096475;
+    }
+
+    .monthly-table tbody tr:hover td {
+      background: rgba(10, 191, 188, 0.04);
+    }
+
+    .monthly-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    .monthly-table td {
+      padding: 9px 12px;
+      border-bottom: 1px solid rgba(150, 150, 150, 0.18);
+      text-align: right;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.74rem;
+      color: var(--text);
+    }
+
+    .monthly-table td:first-child {
+      text-align: left;
+      font-family: 'Sora', sans-serif;
+      font-weight: 600;
+      font-size: 0.78rem;
+      color: var(--text);
+      background: var(--surface);
+      position: sticky;
+      left: 0;
+      z-index: 1;
+      border-right: 1px solid var(--border);
+    }
+
+    .monthly-table tbody tr:nth-child(even) td:first-child {
+      background: var(--surface2);
+    }
+
+    .monthly-table .mt-kpi-label {
+      font-size: 0.65rem;
+      font-weight: 500;
+      color: var(--muted);
+      display: block;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .monthly-table .mt-num {
+      color: #0abfbc;
+      font-weight: 600;
+    }
+
+    .monthly-table .mt-num-red {
+      color: #e05c5c;
+      font-weight: 600;
+    }
+
+    .monthly-table .mt-num-grey {
+      color: #666;
+    }
+
+    .monthly-table .mt-pct-good {
+      color: #0abfbc;
+      font-weight: 700;
+    }
+
+    .monthly-table .mt-pct-mid {
+      color: #b07800;
+      font-weight: 700;
+    }
+
+    .monthly-table .mt-pct-bad {
+      color: #e05c5c;
+      font-weight: 700;
+    }
+
+    .monthly-table .mt-total {
+      background: rgba(10, 191, 188, 0.06);
+      font-weight: 700;
+    }
+
+    .monthly-table .mt-total td {
+      color: var(--text);
+      border-top: 2px solid rgba(10, 191, 188, 0.3);
+    }
+
+    .monthly-table .mt-total td:first-child {
+      color: var(--accent);
+    }
+
+    .mt-section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       PAGE 2 — VDC / Tickets — styles complémentaires, scopés à #page2
+       pour ne jamais affecter la Page 1 (TELCO OI) même en cas de nom
+       de classe identique.
+       ═══════════════════════════════════════════════════════════════ */
+    #page2 {
+      --card: var(--surface);
+    }
+
+    #page2 .filter-group label {
+      font-size: 0.68rem;
+      font-weight: 500;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    #page2 .sync-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      display: inline-block;
+      animation: pulse 2s infinite;
+    }
+
+    #page2 .dash-table td.num {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+    }
+
+    #page2 .dash-table td.metric {
+      font-weight: 600;
+      color: var(--muted);
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    /* Variantes de statut des cartes KPI (mêmes mécanismes que .kpi-card.green/.red/... de la Page 1) */
+    #page2 .kpi-card.green-card::before {
+      background: linear-gradient(90deg, #0abfbc, transparent);
+    }
+
+    #page2 .kpi-card.green-card .kpi-value {
+      color: #0abfbc;
+    }
+
+    #page2 .kpi-card.red-card::before {
+      background: linear-gradient(90deg, #e05c5c, transparent);
+    }
+
+    #page2 .kpi-card.red-card .kpi-value {
+      color: #e05c5c;
+    }
+
+    #page2 .kpi-card.gold-card::before {
+      background: linear-gradient(90deg, #c9a14a, transparent);
+    }
+
+    #page2 .kpi-card.gold-card .kpi-value {
+      color: #a8842e;
+    }
+
+    #page2 .kpi-card.purple-card::before {
+      background: linear-gradient(90deg, #8e6bb0, transparent);
+    }
+
+    #page2 .kpi-card.purple-card .kpi-value {
+      color: #6c3483;
+    }
+
+    #page2 .error-banner {
+      background: rgba(224, 92, 92, 0.08);
+      border: 1px solid rgba(224, 92, 92, 0.3);
+      border-left: 4px solid var(--accent4);
+      color: #c0392b;
+      padding: 12px 16px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      font-size: 0.78rem;
+      display: none;
+    }
+
+    #page2 .error-banner.visible {
+      display: block;
+    }
+
+    #page2 .agent-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.72rem;
+      flex-shrink: 0;
+      border: 2px solid transparent;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    #page2 .agent-name {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    #page2 .agent-bar-wrap {
+      height: 7px;
+      background: var(--border);
+      border-radius: 4px;
+    }
+
+    #page2 .agent-bar {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.6s ease;
+    }
+
+    #page2 .dmpc-alert,
+    #page2 .dmpc-warn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 20px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    #page2 .dmpc-alert {
+      background: rgba(224, 92, 92, 0.12);
+      border: 1px solid rgba(224, 92, 92, 0.35);
+      color: #c0392b;
+      animation: dmpc-blink 2s ease-in-out infinite;
+    }
+
+    #page2 .dmpc-warn {
+      background: rgba(230, 126, 34, 0.12);
+      border: 1px solid rgba(230, 126, 34, 0.35);
+      color: #c0762a;
+    }
+
+    @keyframes dmpc-blink {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.55;
+      }
+    }
+
+    #page2 .dmpc-alert-inline {
+      color: #c0392b;
+      font-weight: 900;
+    }
+
+    #page2 .dmpc-warn-inline {
+      color: #c0762a;
+      font-weight: 900;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="loadingOverlay">
+    <div class="spinner"></div>
+    <div id="loadingMsg">Connexion à Google Sheets…</div>
+  </div>
+  <div class="header">
+    <div class="header-left">
+      <div class="logo">📊</div>
+      <div>
+        <h1>DASH <span>BOARD 2026</span> — TELCO OI</h1>
+      </div>
+      <span class="header-badge">LIVE</span>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+      <div class="last-update" id="lastUpdate">Mise à jour : —</div>
+      <div style="font-size:0.68rem;color:var(--accent);font-family:'JetBrains Mono',monospace;" id="syncCountdown">⟳
+        auto-sync dans 2:00</div>
+      <button class="btn-sync" id="btnSync" onclick="syncNow()">⟳ Synchroniser</button>
+      <img
+        src="data:image/png;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCACKAWwDASIAAhEBAxEB/8QAHQABAAMAAwEBAQAAAAAAAAAAAAUGBwMECAkCAf/EAEoQAAEDAgIEBwoLBgYDAAAAAAABAgMEBQYRBxIhNggTMVF0srMUFyJBYXFydYGRFTdVc5KUtMHC0dIyNDU4VKElM0JDUmKTseH/xAAZAQEAAwEBAAAAAAAAAAAAAAAAAQIEAwX/xAArEQACAgECBQQCAgMBAAAAAAAAAQIDEQQxEiEzQYEyNHGxE8EiYRRRoXL/2gAMAwEAAhEDEQA/APZYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAK5ivF9Dh2sipaqlqpnyx8YixI3JEzVPGqcxDd8+0fJ1x9zP1Geeqpg+GUuZ2jp7ZLKRfAUPvn2j5OuHuZ+o7Vq0h2u4XKmoY6CuY+okSNrnozJFXnycQtZS3hSJeltSy4lyABpOABEYqv1Nh23x1tVDNMx8yRI2LLPNUVc9qps8ErXfPtHydcfcz9Rwnqaq3wyeGdoUWTWYovgKH3z7R8nXH3M/UT2EsUUmJO6u5aaph7m1NbjUbt1tbLLJV/4iGpqnLhjLmJ6eyC4pLkTwAO5xAILEOJ6OyXOioKinqJJKxURjo0TJvhI3bmvlJ0qpxk2k9izg0k33AALFQAAACMxBfbZYqZs9xn1NfNI42pm96pzJ9/JtKqmkmGRFkprBcZYE/wBzZ92af3ONmoqreJPmdYUWTWYrkX0FdwzjGzX6Xuemkkgqcs0hmREc7Ll1VRVRffn5CxF4WRsXFF5RScJQeJLAABcqAR99vNuslJ3TcahImKuTG5ZuevMiJtUqiaSIZlV9FYbjUQouSvyT7s0/ucbNRXW8SfM6wpsmsxRewVjDmOLLeqltI10tJVOXJsc6ImuvMioqpn5FyXyFnL12QsWYvJWdcoPElgAAuUAAAAAAAKTpT0p4O0b0kcmI7g/uudqup6GmZxlRMiZ7UbmiNbsVNZytbnszzMYq+F/Zm1GVJge5SwZ/tTVscb/oojk/udYUzmspHOd0IPEmenQYto54Sej/ABbc4bVWd24erp3pHClwa3iZXryNbK1VRF8Sa+rmqoiZquRtJSUJQeJItGcZrMWAAVLAGP6WOEBhnRzi9+GbpY73W1LaeOdZaRsKx5PzyTw5Grns5ixaGNKdn0pW2411nttyoI6CdsMja1I0c5XN1s01HO2Zc5d1yUeJrkUVkXLhzzL8AChcAAAEdijdq6dDm6ikiR2KN2rp0ObqKUs9LLQ9SKxoW3Wqemu7OMvBR9C261T013Zxl4OOj6Efg7arrSAANJnKPpo3XpenN7OQs2Fd2LV0KHqIVnTRuvS9Ob2chZsK7sWroUPUQxw91L4Rqn7ePyySABsMoAABm+lLe7D3pt7RppBm+lLe7D3pt7RppBko61nyvo03dKvz9gAGszAAAGYWimZi3SRcKm4N46joVVrInbWqjXarEVOZfCcqc/kNOa1rWo1qI1qJkiImxEM40Rfx3EC/929eQ0gx6JJ18fdt/Zq1bxPh7JIz/S1aIoKWHEdA1Ketp5m8ZJGmSuzXwXL/ANkdlt5l8iF0sdb8I2air8katRAyRUTxKqIqp7yNx9bqu7YWqqGhjSSeR0atarkbnk9qrtXyIp2sJUdRQYaoKKqYjJ4YUa9qKi5L50LQg46iWFya/wClZSUqVl80/wDhKAA1GczFsDcWaUaqKt8OhtyOakS8ioxyNy9r1VV50TI0yNjI42xxsaxjUya1qZIiGc6N9/sRfOS9sppBj0SzFz7ts1at4ko9kkUjSvY6aoskl5hjSOtpFa5ZGJkr2ZoiovmzzRfFl5SewRcpLthahrplzmcxWSLzuaqtVfbln7T8Y93NuvR3Efom3Kp/nZeuoS4dVy7r9hvi0/Ps/wBFsABsMoAAAPxPLHBBJPK5GxxtV7nL4kRM1U/ZHYn3aunQ5uooQPmnjnFFwxpi25Ypuj3rPcJnSoxzs+Jj/wBuJPIxuTfZnyqqm96OeCxLiLBFDfb1iqS21dxpmVMFNDRpIkDXt1mcYrnIrnZKiq1NXJc0zXlPMzP3VPQ+4+oWBdybF6tp+yaenqrJVRShyPL0sI2yk58z5vaQsLV2DMZ3XCl0fFNU2+ZI3vj/AGJGua17HIi8msxzVy8WeR7c4IuLqzFmhuk+Ep31FbaKl9tlmeubpGsa10aqq7VXi5GIqrtVUVV2nl3hcfzB4l81J9lhN24A/wAWWIPXz/s0BGo/lSpP+i+m/jdKK2PRQAPNPRPCnDV+PSf1ZTfjNT4Ae6eKfWMXZGWcNX49J/VlN+M1PgB7p4p9YxdkejZ7ZeDzq/cs9MAA849EAAAEdijdq6dDm6ikiR2KN2rp0ObqKUs9LLQ9SKxoW3Wqemu7OMvBR9C261T013Zxl4OOj6Efg7arrSAANJnKPpo3XpenN7OQ6Fn0kWehtFFRSUVe59PTxxOVrWZKrWoi5eFybDv6aN16XpzezkLNhXdi1dCh6iHnOM5amXBLHJdsm1SgqI8SzzffBVe+lY/6G4/Rj/WXeiqGVdHBVMRWsmjbI1F5URUz2+85QbK42R9cs+MGayUH6Y485AAOpzM30pb3Ye9NvaNNIM30pb3Ye9NvaNNIMlHWs+V9Gm7pV+fsAA1mYAAAzfRD/HMQem3ryGkGb6If45iD029eQ0gyaHorz9mnWdV+PoA6t1uFHa6F9bXzcTTsVEc/VV2WaoibERV5VQ/dBV09fRxVlJJxkErdZjslTNPMu01cSzw55mfheM9jnABJBm+jff7EXzkvbKaQZvo33+xF85L2ymkGTRdLy/s1avqeEQePdzbr0dxH6Jdyqf52XrKSGPdzbr0dxH6Jdyqf52XrKH7pf+f2Qvbv5/RbAAazMAAACOxPu1dOhzdRSRI7E+7V06HN1FJW4Z8tWfuqeh9x9QsC7k2L1bT9k0+XrP3VPQ+4+oWBdybF6tp+yab9dsjztDvI8McLj+YPEvmpPssJu3AH+LLEHr5/2aAwnhcfzB4l81J9lhN24A/xZYg9fP8As0Ba7268Cj3EvJ6KAB5p6J4U4avx6T+rKb8ZqfAD3TxT6xi7Iyzhq/HpP6spvxmp8APdPFPrGLsj0bPbLwedX7lnpgAHnHogAAAjsUbtXToc3UUkSOxRu1dOhzdRSlnpZaHqRWNC261T013Zxl4KNoV3Wqemu7OMvJx0fQj8HbVdaQABpM5R9NG69L05vZyFmwruxauhQ9RCs6ad16XpzOzkP5YseYcpLJQUk1VMksNNHG9EgcqI5Goi7cudDB+SFepk5PHJGz8cp0R4Vnmy8gqXfEwv/VT/AFd35Evh3EVrv/H/AAbK+TiNXjNaNW5a2eXL5lNUb6pvEZJszypsisuLJYAHU5mb6Ut7sPem3tGmkGZ6W5WU+JrHPKuTI/DcuXiSRqqT/fEwv/VT/V3fkYK7YV3WcTxzX0bZ1znVDhWd/stoKl3xML/1U/1d35FktddT3K3w11I5XQTN1mKqZKqeZTXC6ux4jJMzTqnBZksHZAB0OZm+iXwMRYgidsfrps8z3ov/ALNIMzxHBX4OxlJiSkpnT26rVePRv+lXKiuRV8Wbk1kX2Fhg0hYWkhSR9bLC5U/y3071cn0UVP7mDTWwpi6pvDTe5t1FcrWrILKZ/dK7kTBFYirtc+JE/wDI1fuJDAjVbg61I5Ml7mavsVMykX651WP7jT2ezQTR2+KRHzTyN8fJrLzZIq5Jnmqr4sjTKSCKlpYaWBurFCxsbE5momSIXpkrbpWR2xj5KWr8dSg985OUAGwymb6Ol1NIeIo3bHK+ZcvNN/8AUNIM4xdR3DDOLkxZb6d1RRy/vTG/6c0RHIvMi5IqL4l5fFnOUukLC80DZJK2WncqbY5Kd6qn0UVPcpg09kac1zeGm9/9Gy+uVuJwWU0d7SA5rMGXRXLkiwKntVURDo6J2qmCaVVTY6SVU+mqfcVvFOIajGUjMPYcppZIXPR08z26qKiLmmf/ABai7c12qqIiJz6FYrdFabRS26FdZkEaM1sstZfGvtXNfaWrkrdQ5x2Sxn+8kTi66VCW7eTugA2mQAAAHRxFG+XD9xijTWe+lla1OdVYp3gAfKSPbSty25sTL3H0+0d1ENVo/wAO1VNI2WGa1Ur43tXNHNWJqoqew8L8IjRVddHOLa2qhoHrharnWS31kbM4oUeuaQPVNjHNVdVuf7SIioqrrI2Ewrpa0kYXsbbLYMX1tHbmoqRwLFFKkaLtVGLIxysTyNVOU9S6v88U4s8umf8Ajzamid4WcscvCDxRxbkdqOpWKqcmaUkOaG9cAhjk0X356oqNdf3oi8+VNTnkizWzEWM8Tdw2ulrb3eq6V0r0RVkkkc5c3SPcq7EzXNXuVETPNVPoZoTwOzR5o3tmGVlZPVRI6atmZ+zJO9dZ+XJ4KZ6qZpnqtTPaU1LUKlDuX0qc7XPsXQAHnHonhThq/HpP6spvxmp8APdPFPrGLsjK+Gs5E06T5qif4ZTcq+manwAlRcJ4pVFRf8Ri7I9Gz2y8HnV+5Z6ZAB5x6IAAAPzIxkkbo5GNexyK1zXJmiovKiofoAHFS0tNSRrHS08MDFXWVsbEairz5J5jlACWBuAAAcVVS01XGkdVTwzsRdZGyMRyIvPkvnOr8C2f5JoPq7PyO+CrinuiVJrZnQ+BbP8AJNB9XZ+R2KSio6PW7kpIKfXy1uKjRutlyZ5edTnAUYrZByb7gAFiDr1dDRVbmuq6OnqFamTVliR2XmzQ4PgWz/JNB9XZ+R3wVcYvdEqTXc6HwLZ/kmg+rs/I7kEUUETYoI2RRt2NYxqIieZEP2CVFLZByb3AAJICojkVFRFRdiopFyYcw/JJxj7JbnOzzVVpmbfPs2koCsoxluiVJrZnHTwQU0LYaeGOGNvIyNqNansQ5ACxAAAAIybD1hmlWWWy2971XNXLTMzXz7NpJgrKKluiVJrZnFSUtNSQpDSU8NPGnIyJiNb7kOUAslghvIAAAAAAAAB+Joo5onwzRskjeitcx7c0ci+JUXlKdVaJtGFTO6ebR/hlZHLm5UtsTdZedcm7S6AlSa2IaT3I7D9hseHqNaOw2a3WqmVc1ioqZkLFXnyaiISIBG5IAABFXPDOHLpVrV3PD9prqhWo1ZaijjkeqJyJm5FXI57RZ7RZ45I7RaqG3skVHSNpadkSOVPGqNRMzvAnLIwAAQSAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAf/Z"
+        style="height:26px;object-fit:contain;opacity:0.9;margin-top:2px;" alt="TELCO 01" />
+    </div>
+  </div>
+
+  <!-- ── NAVIGATION ── -->
+  <div class="nav-tabs">
+    <div class="nav-tab active" id="tab1" onclick="switchTab(1)">📊 TELCO OI — Appels</div>
+    <div class="nav-tab" id="tab2" onclick="switchTab(2)">🎫 VDC</div>
+  </div>
+
+  <!-- ══ PAGE 1 ══ -->
+  <div id="page1" class="page active">
+    <div class="main">
+      <div id="errorBanner"></div>
+      <div id="warnBanner"></div>
+      <div id="configPanel">
+        <h3>🔗 Connexion à l'onglet TELCO OI</h3>
+        <p>Votre Google Sheet doit être <strong>publié sur le web en CSV</strong> : Fichier → Partager → Publier sur le
+          web → Sélectionner l'onglet → Format CSV → Publier.</p>
+        <div class="config-row">
+          <input type="text" id="csvUrlInput"
+            placeholder="https://docs.google.com/spreadsheets/d/e/.../pub?gid=...&output=csv" />
+          <button class="btn-load" onclick="loadFromUrl()">▶ Charger</button>
+        </div>
+      </div>
+      <div id="mapperPanel">
+        <h3>🗂️ Correspondance des colonnes</h3>
+        <p>Associez les colonnes détectées aux champs du dashboard.</p>
+        <div class="mapper-grid" id="mapperGrid"></div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <button class="btn-confirm" onclick="confirmMapping()">✓ Confirmer et afficher</button>
+          <span id="mapperHint"
+            style="font-size:0.72rem;color:var(--muted);font-family:'JetBrains Mono',monospace;"></span>
+        </div>
+      </div>
+      <div class="filters-bar">
+        <div class="filter-group">
+          <span class="filter-label">📆 Mois</span>
+          <select id="filterMois" onchange="onMoisChange()">
+            <option value="">Tous les mois</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">📅 Semaine</span>
+          <select id="filterSemaine" onchange="onSemaineChange()">
+            <option value="">Toutes les semaines</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">📅 Date début</span>
+          <input type="date" id="dateFrom" />
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">📅 Date fin</span>
+          <input type="date" id="dateTo" />
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">🏢 Pôle</span>
+          <select id="filterPole" onchange="onPoleChange()">
+            <option value="">Tous les pôles</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">🗺️ Zones</span>
+          <select id="filterZone" onchange="onZoneChange()">
+            <option value="">Toutes les zones</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">📂 Sous-campagne</span>
+          <div class="multiselect" id="filterSousWrap">
+            <button type="button" class="multiselect-btn" id="filterSousBtn" onclick="toggleSousDropdown(event)">Toutes</button>
+            <div class="multiselect-dropdown" id="filterSousDropdown"></div>
+          </div>
+        </div>
+        <button class="btn-apply" onclick="applyFilters()">▶ Appliquer</button>
+        <button class="btn-reset" onclick="resetFilters()">↺ Réinitialiser</button>
+      </div>
+      <div class="data-info" id="dataInfo" style="display:none">
+        <span style="display:none">Source : <strong id="infoSource">—</strong></span>
+        <span>Lignes valides : <strong id="infoRows">—</strong></span>
+        <span>Lignes ignorées : <strong id="infoSkipped">—</strong></span>
+        <span>Période : <strong id="infoPeriod">—</strong></span>
+        <span>Synchro : <strong id="infoSync">—</strong></span>
+      </div>
+      <div class="section-title">Indicateurs globaux</div>
+      <div class="kpi-grid">
+        <div class="kpi-card green">
+          <div class="kpi-icon">📞</div>
+          <div class="kpi-label">Moy. DMT (HH:MM:SS)</div>
+          <div class="kpi-value" id="kpiDmt">—</div>
+          <div class="kpi-sub">Durée Moyenne de Traitement</div>
+          <div class="kpi-objectif" id="kpiDmtObjectifWrap" style="display:none;">
+            <span class="kpi-objectif-label" id="kpiDmtObjectif">—</span>
+            <span class="kpi-ecart" id="kpiDmtEcart">—</span>
+          </div>
+        </div>
+        <div class="kpi-card blue">
+          <div class="kpi-icon">📊</div>
+          <div class="kpi-label">Volumes d'appels</div>
+          <div class="kpi-dual">
+            <div class="kpi-dual-item">
+              <div class="kpi-dual-label">✅ Appels traités</div>
+              <div class="kpi-dual-value tiffany" id="kpiTotalTraites">—</div>
+            </div>
+            <div class="kpi-dual-divider"></div>
+            <div class="kpi-dual-item">
+              <div class="kpi-dual-label">📞 Appels reçus</div>
+              <div class="kpi-dual-value grey" id="kpiTotalEntrants">—</div>
+            </div>
+          </div>
+        </div>
+        <div class="kpi-card amber">
+          <div class="kpi-icon">🏷️</div>
+          <div class="kpi-label">Taux QUALIFIÉ (%)</div>
+          <div class="kpi-value" id="kpiDmc">—</div>
+          <div class="kpi-sub" id="kpiDmcSub">QUALIFIÉ / Appels traités</div>
+        </div>
+        <div class="kpi-card purple">
+          <div class="kpi-icon">✅</div>
+          <div class="kpi-label">Qualité de Service</div>
+          <div class="kpi-value" id="kpiQs">—</div>
+          <div class="kpi-sub">Appels traités / Total</div>
+          <div class="kpi-objectif">
+            <span class="kpi-objectif-label" id="kpiQsObjectifLabel">Objectif&nbsp;: 92%</span>
+            <span class="kpi-ecart" id="kpiQsEcart">—</span>
+          </div>
+        </div>
+        <div class="kpi-card teal">
+          <div class="kpi-icon">⚡</div>
+          <div class="kpi-label">QS &lt; 20 sec</div>
+          <div class="kpi-value" id="kpiSl">—</div>
+          <div class="kpi-sub">Pris en – de 20s / Appels traités</div>
+          <div class="kpi-objectif">
+            <span class="kpi-objectif-label" id="kpiSlObjectifLabel">Objectif&nbsp;: 85%</span>
+            <span class="kpi-ecart" id="kpiSlEcart">—</span>
+          </div>
+        </div>
+        <div class="kpi-card red">
+          <div class="kpi-icon">🎯</div>
+          <div class="kpi-label">New FCR</div>
+          <div class="kpi-value" id="kpiFcr">—</div>
+          <div class="kpi-sub">FCR / Appels traités</div>
+          <div class="kpi-objectif">
+            <span class="kpi-objectif-label" id="kpiFcrObjectifLabel">Objectif&nbsp;: 85%</span>
+            <span class="kpi-ecart" id="kpiFcrEcart">—</span>
+          </div>
+        </div>
+        <div class="kpi-card red">
+          <div class="kpi-icon">📵</div>
+          <div class="kpi-label">Taux d'appels perdus</div>
+          <div class="kpi-value" id="kpiTauxPerdus">—</div>
+          <div class="kpi-sub" id="kpiTauxPerdusAbs">Appels perdus / Entrants</div>
+        </div>
+      </div>
+      <div class="section-title">Volume d'appels & Qualité de Service</div>
+      <div class="panel full-panel">
+        <div class="panel-header">
+          <span class="panel-title">📈 Appels entrants · Appels traités · QS (%) — Vue mensuelle</span>
+          <span class="panel-badge" id="chartLabel">Vue globale</span>
+        </div>
+        <div class="panel-body">
+          <div class="chart-container"><canvas id="mainChart"></canvas></div>
+        </div>
+      </div>
+      <div class="section-title">Détail par sous-campagne</div>
+      <div class="panel full-width-panel">
+        <div class="panel-header">
+          <span class="panel-title">📋 KPI par sous-campagne</span>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span class="panel-badge" id="sousBadge">—</span>
+            <button class="btn-export" title="Exporter" onclick="exportTableToCSV('tableSous', 'kpi_par_sous_campagne')">⬇</button>
+          </div>
+        </div>
+        <div class="panel-body table-scroll" style="padding:0">
+          <table class="dash-table" id="tableSous">
+            <thead>
+              <tr>
+                <th>Sous-campagne</th>
+                <th class="num">Appels entrants</th>
+                <th class="num">Appels traités</th>
+                <th class="num">Appels perdus</th>
+                <th class="num">Nbr FCR</th>
+                <th class="num">Moy. DMT</th>
+                <th class="num">Qualité de service (QS)</th>
+                <th class="num">Taux perdus (%)</th>
+                <th class="num">QS &lt; 20s</th>
+                <th class="num">FCR</th>
+              </tr>
+            </thead>
+            <tbody id="tbodySous"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── TABLEAU COMPARAISON MENSUELLE — PAGE 1 ── -->
+      <div class="section-title">Comparaison mensuelle</div>
+      <div class="panel full-width-panel">
+        <div class="mt-section-header">
+          <span class="panel-title">📅 KPIs par mois</span>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span class="panel-badge" id="monthlyBadge1">—</span>
+            <button class="btn-export" title="Exporter" onclick="exportTableToCSV('monthlyTable1', 'kpi_par_mois')">⬇</button>
+          </div>
+        </div>
+        <div class="monthly-table-wrap" style="padding:0;">
+          <table class="monthly-table" id="monthlyTable1">
+            <thead id="monthlyHead1">
+              <tr>
+                <th>KPI</th>
+              </tr>
+            </thead>
+            <tbody id="monthlyBody1">
+              <tr>
+                <td colspan="2" class="empty-state" style="text-align:center;padding:20px;">En attente de données…</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── TABLEAU COMPARAISON HEBDOMADAIRE — PAGE 1 ── -->
+      <div class="section-title">Comparaison hebdomadaire</div>
+      <div class="panel full-width-panel">
+        <div class="mt-section-header">
+          <span class="panel-title">📅 KPIs par semaine</span>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span class="panel-badge" id="weeklyBadge1">—</span>
+            <button class="btn-export" title="Exporter" onclick="exportTableToCSV('weeklyTable1', 'kpi_par_semaine')">⬇</button>
+          </div>
+        </div>
+        <div class="monthly-table-wrap" style="padding:0;">
+          <table class="monthly-table" id="weeklyTable1">
+            <thead id="weeklyHead1">
+              <tr>
+                <th>KPI</th>
+              </tr>
+            </thead>
+            <tbody id="weeklyBody1">
+              <tr>
+                <td colspan="2" class="empty-state" style="text-align:center;padding:20px;">En attente de données…</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  <!-- ══ FIN PAGE 1 ══ -->
+
+  <!-- ══ PAGE 2 — TICKETS / VDC ══ -->
+  <div id="page2" class="page">
+    <main class="main">
+
+      <div class="error-banner" id="error-banner">
+        ⚠ Impossible de récupérer les données (Apps Script + CSV de secours). Vérifiez que le script est déployé en
+        accès public. <span id="error-detail"></span>
+      </div>
+
+      <!-- SYNC STATUS -->
+      <div style="display:flex;align-items:center;justify-content:flex-end;gap:14px;margin-bottom:16px;flex-wrap:wrap">
+        <span class="sync-dot"></span>
+        <span style="font-size:0.72rem;color:var(--muted);font-family:'JetBrains Mono',monospace"
+          id="data-source">—</span>
+        <span class="last-update" id="last-sync">Dernière synchro : —</span>
+        <button class="btn-sync" id="sync-btn">⟳ Actualiser</button>
+      </div>
+
+      <!-- FILTERS -->
+      <div class="filters-bar">
+        <div class="filter-group">
+          <label class="filter-label">Mois</label>
+          <select id="f-month">
+            <option value="">Tous les mois</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label class="filter-label">Semaine</label>
+          <select id="f-week">
+            <option value="">Toutes les semaines</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label class="filter-label">Date début</label>
+          <input type="date" id="f-date-from">
+        </div>
+        <div class="filter-group">
+          <label class="filter-label">Date fin</label>
+          <input type="date" id="f-date-to">
+        </div>
+        <div class="filter-group">
+          <label class="filter-label">Type</label>
+          <select id="f-type">
+            <option value="">Tous les types</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label class="filter-label">Zone</label>
+          <select id="f-zone">
+            <option value="">Toutes les zones</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label class="filter-label">Agent</label>
+          <select id="f-agent">
+            <option value="">Tous les agents</option>
+          </select>
+        </div>
+        <button id="reset-btn" class="btn-reset">✕ Réinitialiser</button>
+      </div>
+
+      <!-- KPI CARDS -->
+      <div class="kpi-grid">
+        <div class="kpi-card teal">
+          <span class="kpi-icon">🎫</span>
+          <div class="kpi-label">Tickets traités</div>
+          <div class="kpi-value" id="kpi-total">—</div>
+          <div class="kpi-sub" id="kpi-total-sub">sur la période filtrée</div>
+        </div>
+        <div class="kpi-card green-card">
+          <span class="kpi-icon">✅</span>
+          <div class="kpi-label">Validés</div>
+          <div class="kpi-value" id="kpi-valide">—</div>
+          <div class="kpi-sub" id="kpi-valide-pct">—</div>
+        </div>
+        <div class="kpi-card red-card">
+          <span class="kpi-icon">❌</span>
+          <div class="kpi-label">Rejetés</div>
+          <div class="kpi-value" id="kpi-rejete">—</div>
+          <div class="kpi-sub" id="kpi-rejete-pct">—</div>
+        </div>
+        <div class="kpi-card gold-card">
+          <span class="kpi-icon">⏱</span>
+          <div class="kpi-label">DMT Moyenne</div>
+          <div class="kpi-value" id="kpi-dmt">—</div>
+          <div class="kpi-sub">Durée Moy. de Traitement</div>
+        </div>
+        <div class="kpi-card purple-card" id="kpi-dmpc-card">
+          <span class="kpi-icon">⚡</span>
+          <div class="kpi-label">DMPC Moyenne</div>
+          <div class="kpi-value" id="kpi-dmpc">—</div>
+          <div class="kpi-sub" id="kpi-dmpc-days"
+            style="font-size:13px;font-weight:700;color:#6c3483;margin-bottom:2px">—</div>
+          <div class="kpi-sub">Réception → Début traitement</div>
+          <div id="kpi-dmpc-alert" style="margin-top:6px"></div>
+        </div>
+        <div class="kpi-card" style="--card-accent:linear-gradient(90deg,#0abfbc,#089e9b)">
+          <span class="kpi-icon">🕐</span>
+          <div class="kpi-label">Traités &lt; 24h</div>
+          <div class="kpi-value" id="kpi-24h" style="color:#089e9b">—</div>
+          <div class="kpi-sub" id="kpi-24h-pct">— du total</div>
+        </div>
+      </div>
+
+      <!-- CHARTS -->
+      <div class="section-title">Évolution quotidienne</div>
+      <div class="panel full-panel" style="margin-bottom:24px">
+        <div class="panel-header">
+          <span class="panel-title">📈 Tickets traités — Vue quotidienne</span>
+        </div>
+        <div class="panel-body">
+          <div class="chart-container"><canvas id="chart-evolution"></canvas></div>
+        </div>
+      </div>
+
+      <!-- WEEKLY TABLE -->
+      <div class="section-title">
+        Tableau récapitulatif hebdomadaire
+        <span class="panel-badge">Semaines</span>
+      </div>
+      <div class="panel full-width-panel">
+        <div class="panel-body table-scroll" style="padding:0">
+          <table id="weekly-table" class="dash-table">
+            <thead>
+              <tr id="weekly-header">
+                <th>KPI / Semaine</th>
+              </tr>
+            </thead>
+            <tbody id="weekly-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ZONE x WEEK TABLE -->
+      <div class="section-title" style="margin-top:32px">
+        KPIs par Zone &amp; par Semaine
+        <span class="panel-badge">Zone × Semaine</span>
+      </div>
+      <div class="panel full-width-panel" style="margin-bottom:32px">
+        <div class="panel-body table-scroll" style="padding:0">
+          <table id="zone-week-table" class="dash-table">
+            <thead>
+              <tr id="zone-week-header">
+                <th>Zone / Semaine</th>
+              </tr>
+            </thead>
+            <tbody id="zone-week-body"></tbody>
+          </table>
+        </div>
+      </div>
+      <!-- TOP 5 REJETS -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:32px">
+
+        <!-- Top 5 Boutiques par rejet -->
+        <div>
+          <div class="section-title" style="margin-top:0">
+            🏪 Top 5 Boutiques — Rejetés
+            <span class="panel-badge">Rejet</span>
+          </div>
+          <div class="panel full-width-panel">
+            <div class="panel-body table-scroll" style="padding:0">
+              <table id="top-boutique-table" class="dash-table">
+                <thead>
+                  <tr>
+                    <th>Boutique</th>
+                    <th>Tickets traités</th>
+                    <th>Rejetés</th>
+                    <th>Taux de rejet</th>
+                  </tr>
+                </thead>
+                <tbody id="top-boutique-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Top 5 Motifs de rejet -->
+        <div>
+          <div class="section-title" style="margin-top:0">
+            📋 Top 5 Motifs de Rejet
+            <span class="panel-badge">Rejet</span>
+          </div>
+          <div class="panel full-width-panel">
+            <div class="panel-body table-scroll" style="padding:0">
+              <table id="top-motif-table" class="dash-table">
+                <thead>
+                  <tr>
+                    <th>Motif</th>
+                    <th>Rejetés</th>
+                    <th>Taux</th>
+                  </tr>
+                </thead>
+                <tbody id="top-motif-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- TOP 5 MOTIFS PAR BOUTIQUE -->
+      <div class="section-title" style="margin-top:0">
+        🏪 Top 5 Motifs de Rejet par Boutique
+        <span class="panel-badge">Rejet</span>
+      </div>
+      <div id="boutique-motif-grid"
+        style="display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-bottom:32px"></div>
+
+      <!-- AGENT DETAILS -->
+      <div class="section-title">
+        Performance par agent
+        <span class="panel-badge">Détail</span>
+      </div>
+      <div class="panel full-width-panel" style="margin-bottom:28px">
+        <div class="panel-body table-scroll" style="padding:0">
+          <table id="agent-table" class="dash-table">
+            <thead>
+              <tr>
+                <th>Agent</th>
+                <th>Tickets</th>
+                <th>Progression</th>
+                <th>DMT</th>
+                <th>DMPC</th>
+                <th>Validés</th>
+                <th>Rejetés</th>
+              </tr>
+            </thead>
+            <tbody id="agent-rows"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </main>
+  </div>
+  <!-- ══ FIN PAGE 2 ══ -->
+
+  <script>
+    // ─── CONFIG ──────────────────────────────────────────────────────────────────
+    const DEFAULT_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTTLcpVylzw651p7XZ3t0uwWM31qWVKDHMXqcUho9_Nmms4Ut6VM7FsJ7H0Z4AQV3knU5hHMUKzDJza/pub?gid=0&single=true&output=csv';
+
+    const CORS_PROXIES = [
+      url => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
+      url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+      url => `https://thingproxy.freeboard.io/fetch/${url}`,
+      url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+    ];
+
+    // Champs internes → synonymes de colonnes (normalisés)
+    const FIELD_SYNS = {
+      date: ['dateappel', 'date_appel', 'date', 'jour', 'day'],
+      pole: ['poles', 'pole_s', 'pole', 'axe', 'equipe', 'team'],
+      sous: ['souscam', 'sous_cam', 'souscampagne', 'sous', 'campagne'],
+      file: ['nomcam', 'nom_cam', 'nomcampagne', 'campaign', 'file', 'queue'],
+      entrants: ['appels', 'appels_entrants', 'entrant', 'presented', 'incoming'],
+      traites: ['appelstrai', 'appels_trai', 'appels_traites', 'traites', 'traite', 'answered', 'handled'],
+      perdus: ['appelsper', 'appels_per', 'appels_perdus', 'perdus', 'perdu', 'abandoned', 'lost'],
+      sl20: ['sl20sec', 'sl20', 'sl_20', 'sla20', 'sl<20', 'sous20'],
+      sl10: ['sl10sec', 'sl10', 'sl_10', 'sla10', 'sl<10', 'sous10'],
+      fcr: ['newfcr', 'new_fcr', 'fcr', 'firstcall', 'firstcontact'],
+      dmt: ['dmt', 'dureetraitement', 'duree_traitement', 'tht', 'aht'],
+      dureePostTravail: ['dureeposttravailagent', 'duree_post_travail_agent', 'duree post-travail agent', 'posttravailagent', 'duree_post_travail'],
+      dureeAppel: ['dureeappel', 'duree_appel', 'duree appel'],
+      dmpc: ['dureepc', 'duree_pc', 'dmpc', 'postcall', 'acw', 'aftercall', 'wrapup'],
+      dureePriseEnCharge: ['dureepriseencharge', 'duree_prise_en_charge', 'priseencharge', 'prise_en_charge'],
+      qualif: ['nomquai', 'nom_quai', 'nomqualification', 'nom_qualification', 'nomqualif', 'qualification', 'qualif', 'qualifie'],
+      agent: ['idagent', 'id_agent', 'agentid', 'agent'],
+      mois: ['mois', 'month'],
+    };
+
+    // ─── STATE ────────────────────────────────────────────────────────────────────
+    let RAW_DATA = [], filtered = [], chart = null;
+    let selectedSous = []; // Sous-campagnes sélectionnées (filtre multi-sélection)
+    let csvHeaders = [], mapping = {}, activeUrl = '';
+
+    // ─── INIT ─────────────────────────────────────────────────────────────────────
+    // ── Auto-fit texte dans les cartes dmt-box ────────────────────────────────────
+    function autoFitDmtVals() {
+      document.querySelectorAll('.dmt-box .dmt-val').forEach(el => {
+        el.style.fontSize = ''; // reset
+        const box = el.parentElement;
+        if (!box) return;
+        const maxW = box.clientWidth - 32; // padding 16px each side
+        let size = parseFloat(getComputedStyle(el).fontSize);
+        let iter = 0;
+        while (el.scrollWidth > maxW && size > 9 && iter < 20) {
+          size -= 0.5;
+          el.style.fontSize = size + 'px';
+          iter++;
+        }
+      });
+    }
+
+    // ─── SYNC MANUELLE ────────────────────────────────────────────────────────────
+    async function syncNow() {
+      const url = activeUrl || DEFAULT_URL;
+      const btn = document.getElementById('btnSync');
+      btn.disabled = true;
+      btn.textContent = '⟳ Chargement…';
+      showLoading('Connexion à Google Sheets…');
+      clearError(); clearWarn();
+      try {
+        await fetchAndProcess(url);
+      } catch (e) {
+        hideLoading();
+        showError('Impossible de joindre Google Sheets. Vérifiez que le sheet est publié en CSV. Détail : ' + e.message);
+        document.getElementById('configPanel').classList.add('show');
+      }
+      btn.disabled = false;
+      btn.textContent = '⟳ Synchroniser';
+    }
+
+    async function loadFromUrl() {
+      const url = document.getElementById('csvUrlInput').value.trim();
+      if (!url) { showError('Veuillez entrer une URL CSV valide.'); return; }
+      activeUrl = url;
+      await syncNow();
+    }
+
+    // ─── FETCH CSV ────────────────────────────────────────────────────────────────
+    async function fetchCSV(url) {
+      // 1. Essai direct (fonctionne si le sheet est public et sans restriction CORS)
+      try {
+        const r = await fetch(url, { cache: 'no-store', redirect: 'follow' });
+        if (r.ok) {
+          const t = await r.text();
+          if (t && t.trim().length > 10) return t;
+        }
+      } catch (e) { }
+
+      // 2. Fallback sur chaque proxy CORS
+      for (const proxy of CORS_PROXIES) {
+        try {
+          const r = await fetch(proxy(url), { cache: 'no-store' });
+          if (r.ok) {
+            const t = await r.text();
+            if (t && t.trim().length > 10) return t;
+          }
+        } catch (e) { }
+      }
+      throw new Error('Tous les proxies CORS ont échoué. Vérifiez que le sheet est public.');
+    }
+
+    // ─── FETCH & PROCESS ──────────────────────────────────────────────────────────
+    async function fetchAndProcess(url) {
+      activeUrl = url;
+      const csvText = await fetchCSV(url);
+
+      const rows = parseCSV(csvText);
+      if (rows.length < 2) throw new Error('Le CSV est vide ou ne contient pas de données.');
+
+      // En-têtes : nettoyage complet
+      csvHeaders = rows[0].map(h => cleanStr(h));
+      const dataRows = rows.slice(1).filter(r => r.some(c => c.trim() !== ''));
+
+      // Détection automatique du mapping
+      mapping = autoDetectMapping(csvHeaders);
+
+      hideLoading();
+      document.getElementById('configPanel').classList.remove('show');
+
+      // Champs obligatoires manquants → afficher le mapper
+      const missing = ['date'].filter(k => mapping[k] === undefined);
+      if (missing.length > 0) {
+        showMapper(csvHeaders, missing);
+        window._pendingRows = dataRows;
+        return;
+      }
+
+      // ← ICI : on repart de zéro à chaque sync (pas de cache)
+      processData(dataRows);
+    }
+
+    // ─── NETTOYAGE & CONVERSION ──────────────────────────────────────────────────
+
+    // Nettoyage général d'une chaîne
+    function cleanStr(s) {
+      if (s === null || s === undefined) return '';
+      return String(s)
+        .trim()
+        .replace(/\u00A0/g, ' ')     // espace insécable
+        .replace(/\r/g, '')
+        .replace(/^\uFEFF/, '');     // BOM UTF-8
+    }
+
+    // Conversion nombre : gère virgule, espaces, %, formats mixtes
+    function toNum(raw) {
+      if (raw === null || raw === undefined) return 0;
+      let s = cleanStr(raw)
+        .replace(/\s/g, '')          // espaces
+        .replace(/%$/, '')           // pourcentage trailing
+        .replace(',', '.');          // virgule décimale
+      // Si la valeur ressemble à une date sérialisée (ex: 45792), la rejeter comme nombre
+      if (/^\d{5}$/.test(s)) return 0;
+      const n = parseFloat(s);
+      return isNaN(n) ? 0 : n;
+    }
+
+    // Conversion date : gère DD/MM/YYYY, YYYY-MM-DD, serial Excel, avec ou sans heure
+    function toDate(raw) {
+      if (!raw) return null;
+      const s = cleanStr(raw);
+      if (!s) return null;
+
+      // Serial Excel (nombre entre 40000 et 60000)
+      if (/^\d{5}$/.test(s)) {
+        const n = parseInt(s);
+        if (n > 40000 && n < 60000) {
+          const d = new Date(Date.UTC(1899, 11, 30) + n * 86400000);
+          return d.toISOString().slice(0, 10);
+        }
+      }
+
+      // YYYY-MM-DD (ISO)
+      const iso = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+      if (iso) return iso[1] + '-' + iso[2].padStart(2, '0') + '-' + iso[3].padStart(2, '0');
+
+      // DD/MM/YYYY ou DD-MM-YYYY ou DD.MM.YYYY (avec ou sans heure)
+      const fr = s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/);
+      if (fr) {
+        let [, d, mo, y] = fr;
+        if (y.length === 2) y = '20' + y;
+        // Validation : jour 1-31, mois 1-12
+        if (parseInt(d) > 31 || parseInt(mo) > 12) return null;
+        return y + '-' + mo.padStart(2, '0') + '-' + d.padStart(2, '0');
+      }
+
+      return null;
+    }
+
+    // Conversion texte propre
+    function toText(raw) {
+      return cleanStr(raw);
+    }
+
+    // ─── PARSING CSV ──────────────────────────────────────────────────────────────
+    function parseCSV(text) {
+      const rows = []; let cur = [], field = '', inQ = false;
+      // Normalise les fins de ligne
+      const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+      for (let i = 0; i < lines.length; i++) {
+        const c = lines[i], n = lines[i + 1];
+        if (inQ) {
+          if (c === '"' && n === '"') { field += '"'; i++; }
+          else if (c === '"') inQ = false;
+          else field += c;
+        } else {
+          if (c === '"') inQ = true;
+          else if (c === ',') { cur.push(field); field = ''; }
+          else if (c === '\n') {
+            cur.push(field); field = '';
+            if (cur.some(v => v.trim() !== '')) rows.push(cur);
+            cur = [];
+          } else field += c;
+        }
+      }
+      if (field || cur.length) { cur.push(field); if (cur.some(v => v.trim() !== '')) rows.push(cur); }
+      return rows;
+    }
+
+    // ─── AUTO-DÉTECTION MAPPING ───────────────────────────────────────────────────
+    function normalizeKey(s) {
+      return s.toLowerCase()
+        .replace(/[éèêë]/g, 'e').replace(/[àâä]/g, 'a').replace(/[îï]/g, 'i')
+        .replace(/[ùûü]/g, 'u').replace(/[ôö]/g, 'o').replace(/[ç]/g, 'c')
+        .replace(/[\s_\-\.\/\(\)<>]/g, '');
+    }
+
+    function autoDetectMapping(headers) {
+      const map = {};
+      const normH = headers.map(normalizeKey);
+
+      Object.entries(FIELD_SYNS).forEach(([key, syns]) => {
+        for (const syn of syns) {
+          // Correspondance exacte d'abord
+          let idx = normH.findIndex(h => h === syn);
+          // Puis correspondance partielle
+          if (idx === -1) idx = normH.findIndex(h => h.includes(syn) || syn.includes(h));
+          if (idx !== -1 && map[key] === undefined) { map[key] = idx; break; }
+        }
+      });
+      return map;
+    }
+
+    // ─── TRAITEMENT DES DONNÉES ───────────────────────────────────────────────────
+    function processData(rows) {
+      // Remise à zéro totale — aucune donnée en cache
+      RAW_DATA = [];
+      let skipped = 0;
+      const warnings = [];
+
+      rows.forEach((row, rowIdx) => {
+        const get = key => {
+          const idx = mapping[key];
+          return idx !== undefined && idx < row.length ? row[idx] : '';
+        };
+
+        // ── Date (obligatoire) ──
+        const rawDate = get('date');
+        const isoDate = toDate(rawDate);
+        if (!isoDate) {
+          skipped++;
+          if (skipped <= 3) warnings.push(`Ligne ${rowIdx + 2} : date invalide "${rawDate}"`);
+          return;
+        }
+
+        // ── Numériques ──
+        const traites = toNum(get('traites'));
+        const perdusMapped = toNum(get('perdus'));
+        const entrantsMapped = toNum(get('entrants'));
+        // Reconstitution si entrants absent
+        const entrants = entrantsMapped > 0 ? entrantsMapped : (traites + perdusMapped);
+        const sl20 = toNum(get('sl20'));
+        const sl10 = toNum(get('sl10'));
+        const fcr = toNum(get('fcr'));
+        const dureePostTravail = toNum(get('dureePostTravail'));
+        const dureeAppel = toNum(get('dureeAppel'));
+        // DMT par ligne (dashboard "Appels entrants") = Durée post-travail agent + Durée appel (en secondes)
+        const dmt = dureePostTravail + dureeAppel;
+        const dmpc = toNum(get('dmpc'));
+        const dureePriseEnCharge = toNum(get('dureePriseEnCharge'));
+
+        // ── Textes ──
+        const pole = toText(get('pole')) || 'Non défini';
+        const sous = toText(get('sous')) || 'Non défini';
+        const file = toText(get('file')) || '';
+        const agent = toText(get('agent')) || '';
+        const mois = toText(get('mois')) || '';
+
+        // ── Qualification ──
+        const qualifRaw = toText(get('qualif')).toUpperCase().trim();
+        const isQualifie = qualifRaw === 'QUALIFIE' || qualifRaw === 'QUALIFIÉ';
+
+        // ── Validation cohérence ──
+        if (entrants === 0 && traites === 0 && sous === 'Non défini') {
+          skipped++;
+          return;
+        }
+
+        RAW_DATA.push({
+          date: isoDate, pole, sous, file, agent, mois,
+          entrants, traites, sl20, sl10, fcr, dmt, dureePostTravail, dureeAppel, dmpc, dureePriseEnCharge,
+          qualifie: isQualifie ? 1 : 0,
+        });
+      });
+
+      // ── Info panel ──
+      const dates = RAW_DATA.map(r => r.date).sort();
+      const period = dates.length
+        ? fmtDate(dates[0]) + ' → ' + fmtDate(dates[dates.length - 1])
+        : '—';
+
+      document.getElementById('dataInfo').style.display = 'flex';
+      document.getElementById('infoSource').textContent = 'TELCO OI';
+      document.getElementById('infoRows').textContent = RAW_DATA.length.toLocaleString('fr-FR');
+      document.getElementById('infoSkipped').textContent = skipped;
+      document.getElementById('infoPeriod').textContent = period;
+      document.getElementById('infoSync').textContent = new Date().toLocaleTimeString('fr-FR');
+
+      // Avertissements
+      if (warnings.length) showWarn('⚠ Données ignorées : ' + warnings.join(' | '));
+
+      updateLastUpdate();
+      populateFilters();
+      filtered = [...RAW_DATA];
+      renderAll();
+
+      // Flash de confirmation
+      const btn = document.getElementById('btnSync');
+      btn.textContent = '✓ Synchronisé';
+      setTimeout(() => { btn.textContent = '⟳ Synchroniser'; }, 2000);
+    }
+
+    // ─── MAPPING MANUEL ───────────────────────────────────────────────────────────
+    function showMapper(headers, missingKeys) {
+      const panel = document.getElementById('mapperPanel');
+      panel.classList.add('show');
+      const allFields = Object.keys(FIELD_SYNS).map(k => ({ key: k, label: k, required: k === 'date' }));
+      const opts = h => ['<option value="">— ignorer —</option>',
+        ...headers.map((hh, i) => `<option value="${i}"${i === mapping[h] ? ' selected' : ''}>${hh}</option>`)
+      ].join('');
+      document.getElementById('mapperGrid').innerHTML = allFields.map(f =>
+        `<div class="mapper-field"><span class="mapper-label">${f.label}${f.required ? ' <span>*</span>' : ''}</span>
+     <select id="map_${f.key}">${opts(f.key)}</select></div>`
+      ).join('');
+      document.getElementById('mapperHint').textContent =
+        missingKeys.length + ' champ(s) requis non détecté(s) : ' + missingKeys.join(', ');
+    }
+
+    function confirmMapping() {
+      const m = {};
+      Object.keys(FIELD_SYNS).forEach(k => {
+        const sel = document.getElementById('map_' + k);
+        if (sel && sel.value !== '') m[k] = parseInt(sel.value);
+      });
+      if (m.date === undefined) { showError('Le champ Date est obligatoire.'); return; }
+      mapping = m;
+      clearError();
+      document.getElementById('mapperPanel').classList.remove('show');
+      processData(window._pendingRows || []);
+    }
+
+    // ─── ZONES : calcule la zone d'un enregistrement depuis le champ "sous" ────────
+    function getZone(sous) {
+      const s = (sous || '').toUpperCase();
+      if (s.includes('RUN')) return 'RUN';
+      if (s.includes('MAY')) return 'MAY';
+      return 'FREE';
+    }
+
+    // ─── FILTRES ─────────────────────────────────────────────────────────────────
+
+    // Construit/rafraîchit la liste déroulante à cases à cocher du filtre "Sous-campagne"
+    // à partir d'une liste de valeurs, en conservant les sélections encore valides.
+    function renderSousDropdown(values) {
+      const dd = document.getElementById('filterSousDropdown');
+      if (!dd) return;
+      // Ne conserver que les sélections toujours présentes dans la nouvelle liste
+      selectedSous = selectedSous.filter(v => values.includes(v));
+
+      let html = '<div class="multiselect-actions">' +
+        '<a onclick="selectAllSous(event)">Tout sélectionner</a>' +
+        '<a onclick="clearSous(event)">Effacer</a></div>';
+      values.forEach(v => {
+        const checked = selectedSous.includes(v) ? 'checked' : '';
+        const safeVal = String(v).replace(/"/g, '&quot;');
+        html += '<label class="multiselect-item"><input type="checkbox" value="' + safeVal + '" ' + checked + ' onchange="onSousCheckboxChange(this)"> <span>' + v + '</span></label>';
+      });
+      dd.innerHTML = html;
+      updateSousButtonLabel();
+    }
+
+    // Met à jour le libellé du bouton du filtre "Sous-campagne"
+    function updateSousButtonLabel() {
+      const btn = document.getElementById('filterSousBtn');
+      if (!btn) return;
+      if (!selectedSous.length) btn.textContent = 'Toutes';
+      else if (selectedSous.length === 1) btn.textContent = selectedSous[0];
+      else btn.textContent = selectedSous.length + ' sélectionnées';
+    }
+
+    // Ouvre/ferme la liste déroulante du filtre "Sous-campagne"
+    function toggleSousDropdown(evt) {
+      if (evt) evt.stopPropagation();
+      const dd = document.getElementById('filterSousDropdown');
+      if (!dd) return;
+      dd.classList.toggle('open');
+    }
+
+    // Coche/décoche une sous-campagne dans le filtre
+    function onSousCheckboxChange(checkbox) {
+      const val = checkbox.value;
+      if (checkbox.checked) {
+        if (!selectedSous.includes(val)) selectedSous.push(val);
+      } else {
+        selectedSous = selectedSous.filter(v => v !== val);
+      }
+      updateSousButtonLabel();
+      updateAllFilterOptions();
+      applyFilters();
+    }
+
+    // Sélectionne toutes les sous-campagnes actuellement listées dans le filtre
+    function selectAllSous(evt) {
+      if (evt) evt.stopPropagation();
+      const dd = document.getElementById('filterSousDropdown');
+      if (!dd) return;
+      const boxes = dd.querySelectorAll('input[type="checkbox"]');
+      selectedSous = [...boxes].map(b => b.value);
+      boxes.forEach(function (b) { b.checked = true; });
+      updateSousButtonLabel();
+      updateAllFilterOptions();
+      applyFilters();
+    }
+
+    // Efface la sélection du filtre "Sous-campagne"
+    function clearSous(evt) {
+      if (evt) evt.stopPropagation();
+      const dd = document.getElementById('filterSousDropdown');
+      if (!dd) return;
+      selectedSous = [];
+      dd.querySelectorAll('input[type="checkbox"]').forEach(function (b) { b.checked = false; });
+      updateSousButtonLabel();
+      updateAllFilterOptions();
+      applyFilters();
+    }
+
+    // Ferme la liste déroulante du filtre "Sous-campagne" en cliquant en dehors
+    document.addEventListener('click', function (e) {
+      const wrap = document.getElementById('filterSousWrap');
+      const dd = document.getElementById('filterSousDropdown');
+      if (wrap && dd && !wrap.contains(e.target)) dd.classList.remove('open');
+    });
+
+    const MOIS_FR = ['Janv.', 'Févr.', 'Mars', 'Avr.', 'Mai', 'Juin', 'Juil.', 'Août', 'Sept.', 'Oct.', 'Nov.', 'Déc.'];
+
+    // ─── FILTRES DYNAMIQUES / INTERDÉPENDANTS (CASCADE) ───────────────────────────
+    // Lit l'état courant des filtres catégoriels (hors date début/fin, qui restent
+    // un intervalle libre appliqué en plus de la cascade).
+    function getCurrentFilterState() {
+      return {
+        pole: document.getElementById('filterPole').value,
+        zone: document.getElementById('filterZone').value,
+        sous: selectedSous,
+        mois: document.getElementById('filterMois').value,
+        semaine: document.getElementById('filterSemaine').value,
+      };
+    }
+
+    // Teste si une ligne correspond à l'état de filtres donné, en ignorant
+    // volontairement le critère "exclude" (utilisé pour calculer les options
+    // restantes d'un filtre en fonction de tous les AUTRES filtres actifs).
+    function matchesFacetFilters(r, f, exclude) {
+      if (exclude !== 'pole' && f.pole && r.pole !== f.pole) return false;
+      if (exclude !== 'zone' && f.zone && getZone(r.sous) !== f.zone) return false;
+      if (exclude !== 'sous' && f.sous.length && !f.sous.includes(r.sous)) return false;
+      if (exclude !== 'mois' && f.mois) {
+        const rMois = r.date ? r.date.slice(0, 7) : '';
+        if (rMois !== f.mois) return false;
+      }
+      if (exclude !== 'semaine' && f.semaine) {
+        const rSemaine = r.date ? getISOWeekKey1(r.date) : '';
+        if (rSemaine !== f.semaine) return false;
+      }
+      return true;
+    }
+
+    // Sous-ensemble de RAW_DATA pertinent pour calculer les options d'un filtre
+    // donné : toutes les données respectant les AUTRES filtres actuellement actifs.
+    function rowsForFacet(exclude) {
+      const f = getCurrentFilterState();
+      return RAW_DATA.filter(r => matchesFacetFilters(r, f, exclude));
+    }
+
+    // Recalcule les options disponibles de TOUS les filtres catégoriels
+    // (Pôle, Zone, Sous-campagne, Mois, Semaine) en fonction des sélections
+    // actuelles des autres filtres, façon "cascade" combinée. Conserve la
+    // sélection en cours si elle reste valide, sinon la réinitialise.
+    function updateAllFilterOptions() {
+      const pe = document.getElementById('filterPole');
+      const ze = document.getElementById('filterZone');
+      const me = document.getElementById('filterMois');
+      const we = document.getElementById('filterSemaine');
+      const prevPole = pe.value, prevZone = ze.value, prevMois = me.value, prevSemaine = we.value;
+
+      // Pôle
+      const poleValues = [...new Set(rowsForFacet('pole').map(r => r.pole))].filter(Boolean).sort();
+      pe.innerHTML = '<option value="">Tous les pôles</option>';
+      poleValues.forEach(p => { const o = document.createElement('option'); o.value = p; o.textContent = p; pe.appendChild(o); });
+      pe.value = poleValues.includes(prevPole) ? prevPole : '';
+
+      // Zone (dérivée du champ "sous")
+      const zoneValues = [...new Set(rowsForFacet('zone').map(r => getZone(r.sous)))].filter(Boolean).sort();
+      ze.innerHTML = '<option value="">Toutes les zones</option>';
+      zoneValues.forEach(z => { const o = document.createElement('option'); o.value = z; o.textContent = z; ze.appendChild(o); });
+      ze.value = zoneValues.includes(prevZone) ? prevZone : '';
+
+      // Sous-campagne (multi-sélection)
+      const sousValues = [...new Set(rowsForFacet('sous').map(r => r.sous))].filter(Boolean).sort();
+      renderSousDropdown(sousValues);
+
+      // Mois
+      const moisValues = [...new Set(rowsForFacet('mois').map(r => r.date ? r.date.slice(0, 7) : null).filter(Boolean))].sort();
+      me.innerHTML = '<option value="">Tous les mois</option>';
+      moisValues.forEach(ym => {
+        const [y, m] = ym.split('-');
+        const o = document.createElement('option');
+        o.value = ym;
+        o.textContent = MOIS_FR[parseInt(m) - 1] + ' ' + y;
+        me.appendChild(o);
+      });
+      me.value = moisValues.includes(prevMois) ? prevMois : '';
+
+      // Semaine
+      const semaineValues = [...new Set(rowsForFacet('semaine').map(r => r.date ? getISOWeekKey1(r.date) : null).filter(Boolean))].sort();
+      we.innerHTML = '<option value="">Toutes les semaines</option>';
+      semaineValues.forEach(wk => {
+        const o = document.createElement('option');
+        o.value = wk;
+        o.textContent = weekLabel1(wk);
+        we.appendChild(o);
+      });
+      we.value = semaineValues.includes(prevSemaine) ? prevSemaine : '';
+    }
+
+    function populateFilters() {
+      // Calcule les listes d'options initiales (aucun filtre actif → toutes les données)
+      updateAllFilterOptions();
+
+      const dates = RAW_DATA.map(r => r.date).sort();
+      if (dates.length) {
+        document.getElementById('dateFrom').value = dates[0];
+        document.getElementById('dateTo').value = dates[dates.length - 1];
+      }
+    }
+
+    // ── Changement de pôle : met à jour en cascade tous les autres filtres ────────
+    function onPoleChange() {
+      updateAllFilterOptions();
+      applyFilters();
+    }
+
+    // ── Changement de zone : met à jour en cascade tous les autres filtres ────────
+    function onZoneChange() {
+      updateAllFilterOptions();
+      applyFilters();
+    }
+
+    // ── Changement de mois : met à jour Date début / Date fin + cascade ───────────
+    function onMoisChange() {
+      const mois = document.getElementById('filterMois').value;
+      document.getElementById('filterSemaine').value = '';
+      if (mois) {
+        const [y, m] = mois.split('-').map(Number);
+        const lastDayNum = new Date(y, m, 0).getDate();
+        const pad = n => String(n).padStart(2, '0');
+        document.getElementById('dateFrom').value = `${y}-${pad(m)}-01`;
+        document.getElementById('dateTo').value = `${y}-${pad(m)}-${pad(lastDayNum)}`;
+      } else {
+        const dates = RAW_DATA.map(r => r.date).sort();
+        if (dates.length) {
+          document.getElementById('dateFrom').value = dates[0];
+          document.getElementById('dateTo').value = dates[dates.length - 1];
+        }
+      }
+      updateAllFilterOptions();
+      applyFilters();
+    }
+
+    // ── Changement de semaine : met à jour Date début / Date fin + cascade ────────
+    function onSemaineChange() {
+      const semaine = document.getElementById('filterSemaine').value;
+      document.getElementById('filterMois').value = '';
+      if (semaine) {
+        const monday = getMondayOfISOWeek1(semaine);
+        const sunday = new Date(monday.getTime() + 6 * 86400000);
+        const pad = n => String(n).padStart(2, '0');
+        const iso = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+        document.getElementById('dateFrom').value = iso(monday);
+        document.getElementById('dateTo').value = iso(sunday);
+      } else {
+        const dates = RAW_DATA.map(r => r.date).sort();
+        if (dates.length) {
+          document.getElementById('dateFrom').value = dates[0];
+          document.getElementById('dateTo').value = dates[dates.length - 1];
+        }
+      }
+      updateAllFilterOptions();
+      applyFilters();
+    }
+
+    function applyFilters() {
+      const from = document.getElementById('dateFrom').value;
+      const to = document.getElementById('dateTo').value;
+      const pole = document.getElementById('filterPole').value;
+      const sous = selectedSous; // Sous-campagnes sélectionnées (tableau, filtre multi-sélection)
+      const mois = document.getElementById('filterMois').value;
+      const semaine = document.getElementById('filterSemaine').value;
+      const zone = document.getElementById('filterZone').value;
+
+      filtered = RAW_DATA.filter(r => {
+        if (pole && r.pole !== pole) return false;
+        if (sous.length && !sous.includes(r.sous)) return false;
+        if (zone && getZone(r.sous) !== zone) return false;
+
+        // Filtre par mois (si sélectionné)
+        if (mois) {
+          const rMois = r.date ? r.date.slice(0, 7) : "";
+          if (rMois !== mois) return false;
+        }
+
+        // Filtre par semaine ISO 8601 (si sélectionné)
+        if (semaine) {
+          const rSemaine = r.date ? getISOWeekKey1(r.date) : "";
+          if (rSemaine !== semaine) return false;
+        }
+
+        // Filtre par intervalle de dates (si renseigné)
+        if (from && r.date < from) return false;
+        if (to && r.date > to) return false;
+
+        return true;
+      });
+
+      renderAll();
+    }
+
+    function resetFilters() {
+      const dates = RAW_DATA.map(r => r.date).sort();
+      if (dates.length) {
+        document.getElementById('dateFrom').value = dates[0];
+        document.getElementById('dateTo').value = dates[dates.length - 1];
+      }
+      document.getElementById('filterPole').value = '';
+      selectedSous = [];
+      document.getElementById('filterMois').value = '';
+      document.getElementById('filterSemaine').value = '';
+      document.getElementById('filterZone').value = '';
+
+      // Repeuple toutes les listes de filtres (cascade) sans aucun critère actif
+      updateAllFilterOptions();
+
+      filtered = [...RAW_DATA];
+      renderAll();
+    }
+
+    // ─── KPIs ─────────────────────────────────────────────────────────────────────
+    function computeKPIs(data) {
+      if (!data.length) return null;
+      const sum = key => data.reduce((a, r) => a + r[key], 0);
+      const totalEntrants = sum('entrants');
+      const totalTraites = sum('traites');
+      const totalSl20 = sum('sl20');
+      const totalSl10 = sum('sl10');
+      const totalFcr = sum('fcr');
+      const totalQualifie = sum('qualifie');
+      const totalPerdus = Math.max(0, totalEntrants - totalTraites);
+      let dmpcW = 0, dmpcT = 0;
+      data.forEach(r => {
+        const w = r.traites || 1;
+        if (r.dmpc > 0) { dmpcW += r.dmpc * w; dmpcT += w; }
+      });
+      // DMT globale (dashboard "Appels entrants") :
+      // 1) DMT_ligne = Durée post-travail agent + Durée appel (déjà calculée en amont dans r.dmt)
+      // 2) Regroupement par sous-campagne ET par date : moyenne des DMT_ligne au sein de chaque groupe (sous-campagne, jour)
+      // 3) DMT globale = moyenne des DMT moyennes obtenues par groupe
+      const dmtByGroup = {};
+      data.forEach(r => {
+        if (r.dmt > 0) {
+          const k = r.sous + '|' + r.date;
+          if (!dmtByGroup[k]) dmtByGroup[k] = [];
+          dmtByGroup[k].push(r.dmt);
+        }
+      });
+      const dmtGroupAvgs = Object.values(dmtByGroup)
+        .map(vals => vals.reduce((a, b) => a + b, 0) / vals.length);
+      const dmtAvg = dmtGroupAvgs.length
+        ? Math.round(dmtGroupAvgs.reduce((a, b) => a + b, 0) / dmtGroupAvgs.length)
+        : null;
+      const pct = (n, d) => d > 0 ? ((n / d) * 100).toFixed(1) : null;
+      return {
+        dmt: dmtAvg,
+        dmpc: dmpcT ? Math.round(dmpcW / dmpcT) : null,
+        tauxQualifie: pct(totalQualifie, totalTraites),
+        totalQualifie,
+        totalFcr,
+        qs: pct(totalTraites, totalEntrants) || '0.0',
+        sl: pct(totalSl20, totalTraites),
+        sl10: pct(totalSl10, totalTraites),
+        fcr: pct(totalFcr, totalTraites),
+        totalEntrants, totalTraites, totalPerdus,
+        tauxPerdus: pct(totalPerdus, totalEntrants),
+      };
+    }
+
+    function fmtHHMMSS(s) {
+      if (s === null || s === undefined) return '—';
+      s = Math.round(s);
+      const h = Math.floor(s / 3600);
+      const m = Math.floor((s % 3600) / 60);
+      const sec = s % 60;
+      return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ':' + String(sec).padStart(2, '0');
+    }
+
+    function applyThreshold(id, value, threshold) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.classList.remove('threshold-good', 'threshold-bad');
+      if (value === null || value === undefined || isNaN(value)) return;
+      if (threshold === null || threshold === undefined) return;
+      el.classList.add(value >= threshold ? 'threshold-good' : 'threshold-bad');
+    }
+
+    // ─── EXPORT CSV ───────────────────────────────────────────────────────────────
+    // Exporte le contenu actuellement affiché d'un tableau (thead + tbody) au format CSV,
+    // en ne conservant que le texte visible (sans balises HTML, pills, couleurs, etc.)
+    function exportTableToCSV(tableId, filename) {
+      const table = document.getElementById(tableId);
+      if (!table) return;
+      const rows = Array.from(table.querySelectorAll('tr'));
+      if (!rows.length) return;
+      const csvLines = rows.map(row => {
+        const cells = Array.from(row.querySelectorAll('th, td'));
+        return cells.map(cell => {
+          let text = (cell.textContent || '').replace(/\s+/g, ' ').trim();
+          text = text.replace(/"/g, '""');
+          if (/[";\n]/.test(text)) text = `"${text}"`;
+          return text;
+        }).join(';');
+      });
+      const csvContent = '\uFEFF' + csvLines.join('\r\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const dateStr = new Date().toISOString().slice(0, 10);
+      a.href = url;
+      a.download = `${filename}_${dateStr}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    function applyEcart(id, value, objectif) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.classList.remove('ecart-good', 'ecart-bad');
+      if (value === null || value === undefined || isNaN(value) || objectif === null || objectif === undefined) {
+        el.textContent = '—';
+        return;
+      }
+      const ecart = value - objectif;
+      const signe = ecart >= 0 ? '+' : '';
+      const fleche = ecart >= 0 ? '↑' : '↓';
+      el.textContent = fleche + ' ' + signe + ecart.toFixed(1) + '%';
+      el.classList.add(ecart >= 0 ? 'ecart-good' : 'ecart-bad');
+    }
+
+    // Écart DMT vs objectif, en pourcentage : Écart% = ((DMT - Objectif) / Objectif) × 100
+    // DMT > objectif (écart positif) = performance dégradée → rouge + flèche bas
+    // DMT < objectif (écart négatif) = performance améliorée → vert + flèche haut
+    function applyEcartDMT(id, dmtSec, objectifSec) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.classList.remove('ecart-good', 'ecart-bad');
+      if (dmtSec === null || dmtSec === undefined || isNaN(dmtSec) || !objectifSec) {
+        el.textContent = '—';
+        return;
+      }
+      const ecartPct = ((dmtSec - objectifSec) / objectifSec) * 100;
+      const signe = ecartPct >= 0 ? '+' : '';
+      const fleche = ecartPct > 0 ? '↓' : '↑';
+      el.textContent = signe + ecartPct.toFixed(0) + '% ' + fleche;
+      el.classList.add(ecartPct > 0 ? 'ecart-bad' : 'ecart-good');
+    }
+
+    function renderKPIs(kpi) {
+      const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+      if (!kpi) {
+        ['kpiDmt', 'kpiDmpc', 'kpiDmc', 'kpiDmcSub', 'kpiQs', 'kpiSl', 'kpiFcr',
+          'kpiTotalTraites', 'kpiTotalEntrants', 'kpiTauxPerdus', 'kpiTauxPerdusAbs']
+          .forEach(id => set(id, '—'));
+        ['kpiDmc', 'kpiQs', 'kpiSl', 'kpiFcr'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.classList.remove('threshold-good', 'threshold-bad');
+        });
+        const ecartEl = document.getElementById('kpiQsEcart');
+        if (ecartEl) { ecartEl.textContent = '—'; ecartEl.classList.remove('ecart-good', 'ecart-bad'); }
+        const ecartFcrEl = document.getElementById('kpiFcrEcart');
+        if (ecartFcrEl) { ecartFcrEl.textContent = '—'; ecartFcrEl.classList.remove('ecart-good', 'ecart-bad'); }
+        const ecartSlEl = document.getElementById('kpiSlEcart');
+        if (ecartSlEl) { ecartSlEl.textContent = '—'; ecartSlEl.classList.remove('ecart-good', 'ecart-bad'); }
+        const dmtObjWrap = document.getElementById('kpiDmtObjectifWrap');
+        if (dmtObjWrap) dmtObjWrap.style.display = 'none';
+        const kpiDmtEl = document.getElementById('kpiDmt');
+        if (kpiDmtEl) kpiDmtEl.classList.remove('threshold-good', 'threshold-bad');
+        const dmtEcartEl = document.getElementById('kpiDmtEcart');
+        if (dmtEcartEl) { dmtEcartEl.textContent = '—'; dmtEcartEl.classList.remove('ecart-good', 'ecart-bad'); }
+        return;
+      }
+      set('kpiDmt', kpi.dmt !== null ? fmtHHMMSS(kpi.dmt) : '—');
+
+      // Objectif DMT dynamique selon la sous-campagne sélectionnée dans le filtre
+      // (affiché uniquement si une seule sous-campagne est sélectionnée)
+      const sousFiltre = selectedSous.length === 1 ? selectedSous[0] : '';
+      const objectifDmt = getObjectifDMT(sousFiltre);
+      const dmtObjWrap = document.getElementById('kpiDmtObjectifWrap');
+      const dmtObjEl = document.getElementById('kpiDmtObjectif');
+      if (dmtObjWrap && dmtObjEl) {
+        if (objectifDmt !== null) {
+          dmtObjEl.textContent = 'Objectif : ' + fmtHHMMSS(objectifDmt);
+          dmtObjWrap.style.display = '';
+        } else {
+          dmtObjWrap.style.display = 'none';
+        }
+      }
+
+      // Coloration de la DMT par rapport à l'objectif (comparaison en secondes) : vert si DMT ≤ objectif, rouge si DMT > objectif
+      const kpiDmtEl = document.getElementById('kpiDmt');
+      if (kpiDmtEl) {
+        kpiDmtEl.classList.remove('threshold-good', 'threshold-bad');
+        if (objectifDmt !== null && kpi.dmt !== null) {
+          kpiDmtEl.classList.add(kpi.dmt <= objectifDmt ? 'threshold-good' : 'threshold-bad');
+        }
+      }
+
+      // Écart DMT vs objectif en %, avec flèche colorée
+      applyEcartDMT('kpiDmtEcart', kpi.dmt, objectifDmt);
+
+      set('kpiDmpc', kpi.dmpc !== null ? fmtHHMMSS(kpi.dmpc) : '—');
+      set('kpiDmc', kpi.tauxQualifie !== null ? kpi.tauxQualifie + '%' : '—');
+      set('kpiDmcSub', kpi.tauxQualifie !== null
+        ? kpi.totalQualifie.toLocaleString('fr-FR') + ' qualifié / ' + kpi.totalTraites.toLocaleString('fr-FR') + ' appels traités'
+        : 'Colonne NOM_QUALIFICATION non détectée');
+      set('kpiQs', kpi.qs + '%');
+      set('kpiSl', kpi.sl !== null ? kpi.sl + '%' : '—');
+      set('kpiFcr', kpi.fcr !== null ? kpi.fcr + '%' : '—');
+      set('kpiTotalTraites', kpi.totalTraites.toLocaleString('fr-FR'));
+      set('kpiTotalEntrants', kpi.totalEntrants.toLocaleString('fr-FR'));
+      set('kpiTauxPerdus', kpi.tauxPerdus !== null ? kpi.tauxPerdus + '%' : '—');
+      set('kpiTauxPerdusAbs', kpi.totalPerdus.toLocaleString('fr-FR') + ' app. perdus');
+
+      // Objectifs QS / FCR dynamiques selon le pôle filtré (FREE PRO = 94% / 91%, sinon valeurs par défaut)
+      // Objectif QS dynamique selon la Zone filtrée (Zone = MAY → 90%, sinon 92%)
+      // Objectif QS < 20 sec : 85% pour RUN et MAY ; vide (pas d'objectif) pour la Zone = FREE
+      const poleFiltre = document.getElementById('filterPole') ? document.getElementById('filterPole').value : '';
+      const zoneFiltre = document.getElementById('filterZone') ? document.getElementById('filterZone').value : '';
+      const objectifQS = getObjectifQS(poleFiltre, zoneFiltre);
+      const objectifFCR = getObjectifFCR(poleFiltre);
+      const objectifSL = getObjectifSL(zoneFiltre);
+      const qsObjLabelEl = document.getElementById('kpiQsObjectifLabel');
+      if (qsObjLabelEl) qsObjLabelEl.textContent = 'Objectif : ' + objectifQS + '%';
+      const fcrObjLabelEl = document.getElementById('kpiFcrObjectifLabel');
+      if (fcrObjLabelEl) fcrObjLabelEl.textContent = 'Objectif : ' + objectifFCR + '%';
+      const slObjLabelEl = document.getElementById('kpiSlObjectifLabel');
+      if (slObjLabelEl) slObjLabelEl.textContent = objectifSL !== null ? ('Objectif : ' + objectifSL + '%') : 'Objectif : ';
+
+      // Mise en forme conditionnelle (seuils)
+      applyThreshold('kpiDmc', kpi.tauxQualifie !== null ? parseFloat(kpi.tauxQualifie) : null, 90);
+      applyThreshold('kpiQs', kpi.qs !== null ? parseFloat(kpi.qs) : null, objectifQS);
+      applyThreshold('kpiSl', kpi.sl !== null ? parseFloat(kpi.sl) : null, objectifSL);
+      applyThreshold('kpiFcr', kpi.fcr !== null ? parseFloat(kpi.fcr) : null, objectifFCR);
+
+      // Écart par rapport à l'objectif (Qualité de Service)
+      applyEcart('kpiQsEcart', kpi.qs !== null ? parseFloat(kpi.qs) : null, objectifQS);
+      // Écart par rapport à l'objectif (FCR)
+      applyEcart('kpiFcrEcart', kpi.fcr !== null ? parseFloat(kpi.fcr) : null, objectifFCR);
+      // Écart par rapport à l'objectif (QS < 20 sec)
+      applyEcart('kpiSlEcart', kpi.sl !== null ? parseFloat(kpi.sl) : null, objectifSL);
+    }
+
+    // ─── TABLEAU ──────────────────────────────────────────────────────────────────
+    function pillQS(v, threshold) {
+      v = parseFloat(v);
+      if (isNaN(v)) return '<span class="pill pill-amber">—</span>';
+      if (threshold === undefined) threshold = 90;
+      if (threshold === null) return `<span class="pill pill-amber">${v.toFixed(1)}%</span>`;
+      const cls = v >= threshold ? 'pill-green' : 'pill-red';
+      return `<span class="pill ${cls}">${v.toFixed(1)}%</span>`;
+    }
+
+    // Objectif DMT dynamique selon la sous-campagne (en secondes)
+    function getObjectifDMT(sousCampagne) {
+      if (!sousCampagne) return null;
+      const s = String(sousCampagne);
+      if (s.includes('933')) return 360;
+      if (s.includes('900') || s.includes('333')) return 300;
+      return null;
+    }
+
+    // Objectif Qualité de Service selon le pôle filtré (92% par défaut, 94% pour FREE PRO),
+    // avec dérogation prioritaire pour la Zone = MAY (objectif = 90%, quel que soit le pôle)
+    function getObjectifQS(pole, zone) {
+      if (String(zone || '').trim().toUpperCase() === 'MAY') return 90;
+      return String(pole || '').trim().toUpperCase() === 'FREE PRO' ? 94 : 92;
+    }
+
+    // Objectif QS < 20 sec : 85% pour les zones RUN et MAY ; aucun objectif (vide) pour la Zone = FREE
+    function getObjectifSL(zone) {
+      return String(zone || '').trim().toUpperCase() === 'FREE' ? null : 85;
+    }
+
+    // Objectif FCR selon le pôle filtré (85% par défaut, 91% pour FREE PRO)
+    function getObjectifFCR(pole) {
+      return String(pole || '').trim().toUpperCase() === 'FREE PRO' ? 91 : 85;
+    }
+
+    // Cellule DMT colorée selon l'objectif dynamique de la sous-campagne
+    function dmtCellSous(sousCampagne, dmtMoy) {
+      if (dmtMoy === null) return '<span class="num-grey">—</span>';
+      const objectif = getObjectifDMT(sousCampagne);
+      const val = fmtHHMMSS(dmtMoy);
+      if (objectif === null) return `<span class="num-grey">${val}</span>`;
+      const cls = dmtMoy <= objectif ? 'threshold-good' : 'threshold-bad';
+      return `<span class="${cls}">${val}</span>`;
+    }
+
+    function renderTableSous(data) {
+      // Objectifs QS / QS < 20 sec dynamiques selon la Zone (et le pôle pour QS) actuellement filtrés
+      const poleFiltreSous = document.getElementById('filterPole') ? document.getElementById('filterPole').value : '';
+      const zoneFiltreSous = document.getElementById('filterZone') ? document.getElementById('filterZone').value : '';
+      const objectifQSSous = getObjectifQS(poleFiltreSous, zoneFiltreSous);
+      const objectifSLSous = getObjectifSL(zoneFiltreSous);
+      const g = {};
+      data.forEach(r => {
+        if (!g[r.sous]) g[r.sous] = { entrants: 0, traites: 0, sl20: 0, fcr: 0, dmtW: 0, dmtT: 0 };
+        const d = g[r.sous];
+        d.entrants += r.entrants;
+        d.traites += r.traites;
+        d.sl20 += r.sl20;
+        d.fcr += r.fcr;
+        if (r.dmt > 0) { d.dmtW += r.dmt * (r.traites || 1); d.dmtT += (r.traites || 1); }
+      });
+      const keys = Object.keys(g).sort();
+      document.getElementById('sousBadge').textContent = keys.length + ' sous-campagne(s)';
+      const tbody = document.getElementById('tbodySous');
+      tbody.innerHTML = '';
+      if (!keys.length) { tbody.innerHTML = '<tr><td colspan="10" class="empty-state">Aucune donnée</td></tr>'; return; }
+      keys.forEach(k => {
+        const d = g[k];
+        const perdus = Math.max(0, d.entrants - d.traites);
+        const tauxPerd = d.entrants > 0 ? (perdus / d.entrants * 100) : 0;
+        const dmtMoy = d.dmtT ? Math.round(d.dmtW / d.dmtT) : null;
+        const qsPct = d.entrants > 0 ? (d.traites / d.entrants * 100).toFixed(1) : null;
+        const slPct = d.traites && d.sl20 > 0 ? (d.sl20 / d.traites * 100).toFixed(1) : null;
+        const fcrPct = d.traites && d.fcr > 0 ? (d.fcr / d.traites * 100).toFixed(1) : null;
+        const tauxCls = tauxPerd < 5 ? 'pill-green' : tauxPerd < 15 ? 'pill-amber' : 'pill-red';
+        const tr = document.createElement('tr');
+        tr.innerHTML =
+          `<td><strong>${k}</strong></td>` +
+          `<td class="num mono">${d.entrants.toLocaleString('fr-FR')}</td>` +
+          `<td class="num-tiffany">${d.traites.toLocaleString('fr-FR')}</td>` +
+          `<td class="num-red">${perdus > 0 ? perdus.toLocaleString('fr-FR') : '<span style="color:#0abfbc;font-family:\'JetBrains Mono\',monospace;font-size:0.76rem;">0</span>'}</td>` +
+          `<td class="num-grey">${d.fcr.toLocaleString('fr-FR')}</td>` +
+          `<td class="num-grey">${dmtCellSous(k, dmtMoy)}</td>` +
+          `<td class="num">${qsPct !== null ? pillQS(parseFloat(qsPct), objectifQSSous) : '<span class="pill pill-amber">—</span>'}</td>` +
+          `<td class="num"><span class="pill ${tauxCls}">${tauxPerd.toFixed(1)}%</span></td>` +
+          `<td class="num">${slPct !== null ? pillQS(parseFloat(slPct), objectifSLSous) : '<span class="pill pill-amber">—</span>'}</td>` +
+          `<td class="num">${fcrPct !== null ? pillQS(parseFloat(fcrPct)) : '<span class="pill pill-amber">—</span>'}</td>`;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // ─── GRAPHIQUE MENSUEL ────────────────────────────────────────────────────────
+    function renderChart(data) {
+      const MOIS_FR = ['Janv.', 'Févr.', 'Mars', 'Avr.', 'Mai', 'Juin', 'Juil.', 'Août', 'Sept.', 'Oct.', 'Nov.', 'Déc.'];
+      const byMonth = {};
+      data.forEach(r => {
+        const ym = r.date ? r.date.slice(0, 7) : null;
+        if (!ym) return;
+        if (!byMonth[ym]) byMonth[ym] = { entrants: 0, traites: 0 };
+        byMonth[ym].entrants += r.entrants;
+        byMonth[ym].traites += r.traites;
+      });
+      const keys = Object.keys(byMonth).sort();
+      const labels = keys.map(ym => { const [y, m] = ym.split('-'); return MOIS_FR[parseInt(m) - 1] + ' ' + y; });
+      const entrants = keys.map(k => byMonth[k].entrants);
+      const traites = keys.map(k => byMonth[k].traites);
+      const qs = keys.map(k => byMonth[k].entrants ? +((byMonth[k].traites / byMonth[k].entrants) * 100).toFixed(1) : 0);
+      const pole = document.getElementById('filterPole').value;
+      const sousLabel = selectedSous.length === 1 ? selectedSous[0]
+        : (selectedSous.length > 1 ? selectedSous.length + ' sous-campagnes' : '');
+      document.getElementById('chartLabel').textContent = pole || sousLabel || 'Vue globale';
+      if (chart) { chart.destroy(); chart = null; }
+      if (!keys.length) return;
+      const ctx = document.getElementById('mainChart').getContext('2d');
+      chart = new Chart(ctx, {
+        data: {
+          labels, datasets: [
+            { type: 'bar', label: 'Appels entrants', data: entrants, backgroundColor: 'rgba(125,216,214,0.5)', borderColor: 'rgba(125,216,214,0.9)', borderWidth: 1, borderRadius: 6, yAxisID: 'yVol', order: 2 },
+            { type: 'bar', label: 'Appels traités', data: traites, backgroundColor: 'rgba(10,191,188,0.5)', borderColor: 'rgba(10,191,188,0.9)', borderWidth: 1, borderRadius: 6, yAxisID: 'yVol', order: 3 },
+            { type: 'line', label: 'QS (%)', data: qs, borderColor: '#aaa', backgroundColor: 'rgba(180,180,180,0.1)', borderWidth: 2.5, pointBackgroundColor: '#aaa', pointRadius: 6, pointHoverRadius: 8, fill: true, tension: 0.35, yAxisID: 'yPct', order: 1 },
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { labels: { color: '#444', font: { family: 'Sora', size: 11 }, padding: 20, usePointStyle: true } },
+            tooltip: {
+              backgroundColor: '#f5f5f5', borderColor: '#ccc', borderWidth: 1, titleColor: '#222', bodyColor: '#777', padding: 12,
+              callbacks: { label: ctx => { if (ctx.dataset.label === 'QS (%)') return ' QS : ' + ctx.parsed.y + '%'; return ' ' + ctx.dataset.label + ' : ' + ctx.parsed.y.toLocaleString('fr-FR'); } }
+            },
+          },
+          scales: {
+            x: { ticks: { color: '#666', font: { family: 'Sora', size: 11 } }, grid: { display: false } },
+            yVol: { position: 'left', title: { display: false }, ticks: { color: '#666', font: { family: 'JetBrains Mono', size: 10 } }, grid: { display: false } },
+            yPct: { position: 'right', title: { display: false }, ticks: { color: '#888', font: { family: 'JetBrains Mono', size: 10 }, callback: v => v + '%' }, grid: { drawOnChartArea: false }, min: 0, max: 100 },
+          },
+        },
+      });
+    }
+
+    // ─── HELPERS ──────────────────────────────────────────────────────────────────
+    function fmtDate(iso) {
+      const [y, m, d] = iso.split('-');
+      return d && m && y ? d + '/' + m + '/' + y.slice(2) : iso;
+    }
+
+    // ─── TABLEAU COMPARAISON MENSUELLE — PAGE 1 ───────────────────────────────────
+    function renderMonthlyTable1(data) {
+      const MOIS_FR = ['Janv.', 'Févr.', 'Mars', 'Avr.', 'Mai', 'Juin', 'Juil.', 'Août', 'Sept.', 'Oct.', 'Nov.', 'Déc.'];
+
+      // Regrouper par mois YYYY-MM depuis toutes les données (RAW_DATA) sans filtre de mois
+      // mais en respectant les autres filtres (pole, sous, dates)
+      const byMonth = {};
+      data.forEach(r => {
+        const ym = r.date ? r.date.slice(0, 7) : null;
+        if (!ym) return;
+        if (!byMonth[ym]) byMonth[ym] = { entrants: 0, traites: 0, sl20: 0, fcr: 0, qualifie: 0, dmtW: 0, dmtT: 0 };
+        const m = byMonth[ym];
+        m.entrants += r.entrants;
+        m.traites += r.traites;
+        m.sl20 += r.sl20;
+        m.fcr += r.fcr;
+        m.qualifie += r.qualifie;
+        if (r.dmt > 0) { m.dmtW += r.dmt * (r.traites || 1); m.dmtT += (r.traites || 1); }
+      });
+
+      const months = Object.keys(byMonth).sort();
+      const head = document.getElementById('monthlyHead1');
+      const body = document.getElementById('monthlyBody1');
+      const badge = document.getElementById('monthlyBadge1');
+
+      if (!months.length) {
+        head.innerHTML = '<tr><th>KPI</th></tr>';
+        body.innerHTML = '<tr><td colspan="2" class="empty-state" style="text-align:center;padding:20px;">Aucune donnée</td></tr>';
+        if (badge) badge.textContent = '—';
+        return;
+      }
+
+      if (badge) badge.textContent = months.length + ' mois';
+
+      // En-tête : ligne avec les mois
+      head.innerHTML = `<tr>
+    <th style="text-align:left;position:sticky;left:0;z-index:2;">KPI</th>
+    ${months.map(ym => {
+        const [y, mo] = ym.split('-');
+        return `<th style="text-align:right;">${MOIS_FR[parseInt(mo) - 1]} ${y}</th>`;
+      }).join('')}
+  </tr>`;
+
+      // KPI definitions for page 1
+      // Objectifs QS / QS < 20 sec dynamiques selon la Zone (et le pôle pour QS) actuellement filtrés
+      const poleFiltreM1 = document.getElementById('filterPole') ? document.getElementById('filterPole').value : '';
+      const zoneFiltreM1 = document.getElementById('filterZone') ? document.getElementById('filterZone').value : '';
+      const objectifQSM1 = getObjectifQS(poleFiltreM1, zoneFiltreM1);
+      const objectifSLM1 = getObjectifSL(zoneFiltreM1);
+      const pct = (n, d) => d > 0 ? (n / d * 100).toFixed(1) + '%' : '—';
+      const pill1 = (v) => {
+        if (v === '—') return `<span style="color:var(--muted);">—</span>`;
+        const n = parseFloat(v);
+        const cls = n >= objectifQSM1 ? 'mt-pct-good' : n >= (objectifQSM1 - 15) ? 'mt-pct-mid' : 'mt-pct-bad';
+        return `<span class="${cls}">${v}</span>`;
+      };
+      // Indicateur dédié QS < 20 sec : seuil binaire dynamique selon la Zone (rouge / vert), neutre si Zone = FREE (pas d'objectif)
+      const pillSL = (v) => {
+        if (v === '—') return `<span style="color:var(--muted);">—</span>`;
+        if (objectifSLM1 === null) return `<span style="color:var(--muted);">${v}</span>`;
+        const n = parseFloat(v);
+        const cls = n >= objectifSLM1 ? 'mt-pct-good' : 'mt-pct-bad';
+        return `<span class="${cls}">${v}</span>`;
+      };
+      const pillPerd = (v) => {
+        if (v === '—') return `<span style="color:var(--muted);">—</span>`;
+        const n = parseFloat(v);
+        const cls = n < 5 ? 'mt-pct-good' : n < 15 ? 'mt-pct-mid' : 'mt-pct-bad';
+        return `<span class="${cls}">${v}</span>`;
+      };
+
+      // Calcul totaux pour ligne total
+      const totals = { entrants: 0, traites: 0, sl20: 0, fcr: 0, qualifie: 0, dmtW: 0, dmtT: 0 };
+      months.forEach(ym => {
+        const m = byMonth[ym];
+        totals.entrants += m.entrants;
+        totals.traites += m.traites;
+        totals.sl20 += m.sl20;
+        totals.fcr += m.fcr;
+        totals.qualifie += m.qualifie;
+        totals.dmtW += m.dmtW;
+        totals.dmtT += m.dmtT;
+      });
+
+      const kpis = [
+        {
+          label: '📞 Appels entrants',
+          cell: m => `<span class="mt-num-grey">${m.entrants.toLocaleString('fr-FR')}</span>`,
+          total: `<span class="mt-num-grey">${totals.entrants.toLocaleString('fr-FR')}</span>`
+        },
+        {
+          label: '✅ Appels traités',
+          cell: m => `<span class="mt-num">${m.traites.toLocaleString('fr-FR')}</span>`,
+          total: `<span class="mt-num">${totals.traites.toLocaleString('fr-FR')}</span>`
+        },
+        {
+          label: '📵 Appels perdus',
+          cell: m => { const p = Math.max(0, m.entrants - m.traites); return `<span class="mt-num-red">${p.toLocaleString('fr-FR')}</span>`; },
+          total: () => { const p = Math.max(0, totals.entrants - totals.traites); return `<span class="mt-num-red">${p.toLocaleString('fr-FR')}</span>`; }
+        },
+        {
+          label: '🔢 Nbr FCR',
+          cell: m => `<span class="mt-num-grey">${m.fcr.toLocaleString('fr-FR')}</span>`,
+          total: () => `<span class="mt-num-grey">${totals.fcr.toLocaleString('fr-FR')}</span>`
+        },
+        {
+          label: '⏱ DMT moy.',
+          cell: m => `<span class="mt-num-grey">${m.dmtT ? fmtHHMMSS(Math.round(m.dmtW / m.dmtT)) : '—'}</span>`,
+          total: `<span class="mt-num-grey">${totals.dmtT ? fmtHHMMSS(Math.round(totals.dmtW / totals.dmtT)) : '—'}</span>`
+        },
+        {
+          label: '✅ QS (%)',
+          cell: m => pill1(pct(m.traites, m.entrants)),
+          total: () => pill1(pct(totals.traites, totals.entrants))
+        },
+        {
+          label: '📉 Taux perdus',
+          cell: m => { const p = Math.max(0, m.entrants - m.traites); return pillPerd(pct(p, m.entrants)); },
+          total: () => { const p = Math.max(0, totals.entrants - totals.traites); return pillPerd(pct(p, totals.entrants)); }
+        },
+        {
+          label: '⚡ SL < 20s',
+          cell: m => pillSL(pct(m.sl20, m.traites)),
+          total: () => pillSL(pct(totals.sl20, totals.traites))
+        },
+        {
+          label: '🎯 New FCR',
+          cell: m => `<span class="mt-pct-good">${pct(m.fcr, m.traites)}</span>`,
+          total: () => `<span class="mt-pct-good">${pct(totals.fcr, totals.traites)}</span>`
+        },
+        {
+          label: '🏷️ Taux Qualifié',
+          cell: m => `<span class="mt-num">${pct(m.qualifie, m.traites)}</span>`,
+          total: () => `<span class="mt-num">${pct(totals.qualifie, totals.traites)}</span>`
+        },
+      ];
+
+      body.innerHTML = kpis.map(kpi => {
+        const cells = months.map(ym => `<td>${kpi.cell(byMonth[ym])}</td>`).join('');
+        return `<tr><td>${kpi.label}</td>${cells}</tr>`;
+      }).join('');
+    }
+
+    // ─── UTILITAIRES SEMAINE ISO 8601 (dédiés au tableau "KPIs par semaine") ──────
+    function getISOWeekInfo1(dateStr) {
+      // dateStr au format "YYYY-MM-DD"
+      const d = new Date(dateStr + 'T00:00:00');
+      if (isNaN(d.getTime())) return null;
+      d.setHours(0, 0, 0, 0);
+      d.setDate(d.getDate() + 3 - (d.getDay() + 6) % 7);
+      const week1 = new Date(d.getFullYear(), 0, 4);
+      const weekNum = 1 + Math.round(((d.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
+      return { year: d.getFullYear(), week: weekNum };
+    }
+    function getISOWeekKey1(dateStr) {
+      const info = getISOWeekInfo1(dateStr);
+      if (!info) return null;
+      return `${info.year}-S${String(info.week).padStart(2, '0')}`;
+    }
+    function getMondayOfISOWeek1(weekKey) {
+      const [year, sNum] = weekKey.split('-S');
+      const y = parseInt(year), w = parseInt(sNum);
+      const jan4 = new Date(y, 0, 4);
+      const jan4Day = (jan4.getDay() + 6) % 7; // 0 = lundi
+      return new Date(jan4.getTime() - jan4Day * 86400000 + (w - 1) * 7 * 86400000);
+    }
+    function weekLabel1(weekKey) {
+      const monday = getMondayOfISOWeek1(weekKey);
+      const sunday = new Date(monday.getTime() + 6 * 86400000);
+      const fmt = d => d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+      const [, sNum] = weekKey.split('-S');
+      return `S${sNum} (${fmt(monday)}-${fmt(sunday)})`;
+    }
+    // Libellé court (sans plage de dates) utilisé dans l'en-tête du tableau "KPIs par semaine"
+    function weekLabelShort1(weekKey) {
+      const [, sNum] = weekKey.split('-S');
+      return `S${sNum}`;
+    }
+
+    // ─── TABLEAU COMPARAISON HEBDOMADAIRE — PAGE 1 ────────────────────────────────
+    function renderWeeklyTable1(data) {
+      // Regrouper par semaine ISO 8601 (lundi → dimanche) en respectant les filtres actifs
+      const byWeek = {};
+      data.forEach(r => {
+        const wk = r.date ? getISOWeekKey1(r.date) : null;
+        if (!wk) return;
+        if (!byWeek[wk]) byWeek[wk] = { entrants: 0, traites: 0, sl20: 0, fcr: 0, qualifie: 0, dmtW: 0, dmtT: 0, dpcW: 0, dpcT: 0 };
+        const w = byWeek[wk];
+        w.entrants += r.entrants;
+        w.traites += r.traites;
+        w.sl20 += r.sl20;
+        w.fcr += r.fcr;
+        w.qualifie += r.qualifie;
+        if (r.dmt > 0) { w.dmtW += r.dmt * (r.traites || 1); w.dmtT += (r.traites || 1); }
+        // Moyenne de Duree_prise_en_Charge, uniquement pour les appels pris en charge en moins de 20s
+        if (r.dureePriseEnCharge !== null && r.dureePriseEnCharge !== undefined && r.dureePriseEnCharge < 20) {
+          w.dpcW += r.dureePriseEnCharge;
+          w.dpcT += 1;
+        }
+      });
+
+      const weeks = Object.keys(byWeek).sort();
+      const head = document.getElementById('weeklyHead1');
+      const body = document.getElementById('weeklyBody1');
+      const badge = document.getElementById('weeklyBadge1');
+
+      if (!weeks.length) {
+        head.innerHTML = '<tr><th>KPI</th></tr>';
+        body.innerHTML = '<tr><td colspan="2" class="empty-state" style="text-align:center;padding:20px;">Aucune donnée</td></tr>';
+        if (badge) badge.textContent = '—';
+        return;
+      }
+
+      if (badge) badge.textContent = weeks.length + ' semaine(s)';
+
+      // En-tête : ligne avec les semaines
+      head.innerHTML = `<tr>
+    <th style="text-align:left;position:sticky;left:0;z-index:2;">KPI</th>
+    ${weeks.map(wk => `<th style="text-align:right;">${weekLabelShort1(wk)}</th>`).join('')}
+  </tr>`;
+
+      // KPI definitions (identiques à "KPIs par mois")
+      // Objectifs QS / QS < 20 sec dynamiques selon la Zone (et le pôle pour QS) actuellement filtrés
+      const poleFiltreW1 = document.getElementById('filterPole') ? document.getElementById('filterPole').value : '';
+      const zoneFiltreW1 = document.getElementById('filterZone') ? document.getElementById('filterZone').value : '';
+      const objectifQSW1 = getObjectifQS(poleFiltreW1, zoneFiltreW1);
+      const objectifSLW1 = getObjectifSL(zoneFiltreW1);
+      const pct = (n, d) => d > 0 ? (n / d * 100).toFixed(1) + '%' : '—';
+      const pill1 = (v) => {
+        if (v === '—') return `<span style="color:var(--muted);">—</span>`;
+        const n = parseFloat(v);
+        const cls = n >= objectifQSW1 ? 'mt-pct-good' : n >= (objectifQSW1 - 15) ? 'mt-pct-mid' : 'mt-pct-bad';
+        return `<span class="${cls}">${v}</span>`;
+      };
+      const pillSL = (v) => {
+        if (v === '—') return `<span style="color:var(--muted);">—</span>`;
+        if (objectifSLW1 === null) return `<span style="color:var(--muted);">${v}</span>`;
+        const n = parseFloat(v);
+        const cls = n >= objectifSLW1 ? 'mt-pct-good' : 'mt-pct-bad';
+        return `<span class="${cls}">${v}</span>`;
+      };
+      const pillPerd = (v) => {
+        if (v === '—') return `<span style="color:var(--muted);">—</span>`;
+        const n = parseFloat(v);
+        const cls = n < 5 ? 'mt-pct-good' : n < 15 ? 'mt-pct-mid' : 'mt-pct-bad';
+        return `<span class="${cls}">${v}</span>`;
+      };
+
+      const kpis = [
+        {
+          label: '📞 Appels entrants',
+          cell: w => `<span class="mt-num-grey">${w.entrants.toLocaleString('fr-FR')}</span>`,
+        },
+        {
+          label: '✅ Appels traités',
+          cell: w => `<span class="mt-num">${w.traites.toLocaleString('fr-FR')}</span>`,
+        },
+        {
+          label: '📵 Appels perdus',
+          cell: w => { const p = Math.max(0, w.entrants - w.traites); return `<span class="mt-num-red">${p.toLocaleString('fr-FR')}</span>`; },
+        },
+        {
+          label: '🔢 Nbr FCR',
+          cell: w => `<span class="mt-num-grey">${w.fcr.toLocaleString('fr-FR')}</span>`,
+        },
+        {
+          label: '⏱ DMT moy.',
+          cell: w => `<span class="mt-num-grey">${w.dmtT ? fmtHHMMSS(Math.round(w.dmtW / w.dmtT)) : '—'}</span>`,
+        },
+        {
+          label: '✅ QS (%)',
+          cell: w => pill1(pct(w.traites, w.entrants)),
+        },
+        {
+          label: '📉 Taux perdus',
+          cell: w => { const p = Math.max(0, w.entrants - w.traites); return pillPerd(pct(p, w.entrants)); },
+        },
+        {
+          label: '⚡ SL < 20s',
+          cell: w => pillSL(pct(w.sl20, w.traites)),
+        },
+        {
+          label: '⏳ Durée prise en charge moy. (< 20s)',
+          cell: w => `<span class="mt-num-grey">${w.dpcT ? (w.dpcW / w.dpcT).toFixed(1) + 's' : '—'}</span>`,
+        },
+        {
+          label: '🎯 New FCR',
+          cell: w => `<span class="mt-pct-good">${pct(w.fcr, w.traites)}</span>`,
+        },
+        {
+          label: '🏷️ Taux Qualifié',
+          cell: w => `<span class="mt-num">${pct(w.qualifie, w.traites)}</span>`,
+        },
+      ];
+
+      body.innerHTML = kpis.map(kpi => {
+        const cells = weeks.map(wk => `<td>${kpi.cell(byWeek[wk])}</td>`).join('');
+        return `<tr><td>${kpi.label}</td>${cells}</tr>`;
+      }).join('');
+    }
+
+    function renderAll() { renderKPIs(computeKPIs(filtered)); renderTableSous(filtered); renderChart(filtered); renderMonthlyTable1(filtered); renderWeeklyTable1(filtered); }
+    function showLoading(msg) { document.getElementById('loadingMsg').textContent = msg; document.getElementById('loadingOverlay').classList.remove('hidden'); }
+    function hideLoading() { document.getElementById('loadingOverlay').classList.add('hidden'); }
+    function showError(msg) { const el = document.getElementById('errorBanner'); el.innerHTML = '⚠️ ' + msg; el.classList.add('show'); }
+    function clearError() { document.getElementById('errorBanner').classList.remove('show'); }
+    function showWarn(msg) { const el = document.getElementById('warnBanner'); el.textContent = msg; el.classList.add('show'); }
+    function clearWarn() { document.getElementById('warnBanner').classList.remove('show'); }
+    function updateLastUpdate() { document.getElementById('lastUpdate').textContent = 'Mis à jour : ' + new Date().toLocaleDateString('fr-FR') + ' ' + new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }); }
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // ── NAVIGATION ────────────────────────────────────────────────────────────────
+    // ═══════════════════════════════════════════════════════════════════════════════
+    function switchTab(n) {
+      [1, 2].forEach(i => {
+        document.getElementById('tab' + i).classList.toggle('active', i === n);
+        document.getElementById('page' + i).classList.toggle('active', i === n);
+      });
+      if (n === 2 && window.__vdcResizeCharts) {
+        // Le canvas Chart.js a pu être créé pendant que la page était cachée (display:none) :
+        // on force un resize pour qu'il s'affiche correctement.
+        requestAnimationFrame(window.__vdcResizeCharts);
+      }
+    }
+
+    // ── Empilement des barres figées (header → onglets → filtres) ─────────────────
+    // Calcule dynamiquement les offsets "top" des onglets de navigation ET de la
+    // barre de filtres, à partir de la hauteur RÉELLE du header (qui peut varier
+    // selon la résolution d'écran / la longueur du texte). Corrige le décalage qui
+    // permettait au contenu de la page de défiler par-dessus la barre de filtres.
+    function updateStickyOffsets() {
+      const header = document.querySelector('.header');
+      const navTabs = document.querySelector('.nav-tabs');
+      const filtersBar1 = document.querySelector('#page1 .filters-bar');
+      const filtersBar2 = document.querySelector('#page2 .filters-bar');
+      if (!header || !navTabs) return;
+      const headerH = header.offsetHeight;
+      navTabs.style.top = headerH + 'px';
+      const top = (headerH + navTabs.offsetHeight) + 'px';
+      if (filtersBar1) filtersBar1.style.top = top;
+      if (filtersBar2) filtersBar2.style.top = top;
+    }
+    // Recalcule au chargement, au redimensionnement, et à chaque variation de
+    // hauteur du header (texte de synchro, retour à la ligne sur petit écran, etc.)
+    window.addEventListener('load', updateStickyOffsets);
+    window.addEventListener('resize', updateStickyOffsets);
+    if (window.ResizeObserver) {
+      const stickyOffsetsObserver = new ResizeObserver(() => updateStickyOffsets());
+      window.addEventListener('DOMContentLoaded', () => {
+        const header = document.querySelector('.header');
+        if (header) stickyOffsetsObserver.observe(header);
+      });
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      // ── Initialisation des champs URL ────────────────────────────────────────────
+      document.getElementById('csvUrlInput').value = DEFAULT_URL;
+
+      // ── Empilement des barres figées : premier calcul (affiné au 'load' / resize) ─
+      updateStickyOffsets();
+
+      // ── Chargement initial — Page 1 ───────────────────────────────────────────────
+      syncNow();
+      // (Page 2 — Tickets/VDC se charge elle-même de façon autonome, voir son propre script)
+
+
+      // ── Auto-synchronisation silencieuse toutes les 15 minutes ───────────────────
+      const SYNC_INTERVAL = 15 * 60; // secondes
+      let countdown = SYNC_INTERVAL;
+
+      // Countdown affiché dans le header
+      const countdownEl = document.getElementById('syncCountdown');
+      setInterval(() => {
+        countdown--;
+        if (countdown <= 0) {
+          // Déclenchement réel de la synchronisation sur les deux sources
+          countdown = SYNC_INTERVAL;
+          const url1 = activeUrl || DEFAULT_URL;
+
+          // Sync silencieuse Page 1 : sans spinner ni flash bouton
+          fetchAndProcess(url1).then(() => {
+            const btn = document.getElementById('btnSync');
+            if (btn) { btn.textContent = '✓ Synchronisé'; setTimeout(() => { btn.textContent = '⟳ Synchroniser'; }, 2000); }
+          }).catch(() => { });
+        }
+
+        // Mise à jour du countdown affiché
+        const m = Math.floor(countdown / 60);
+        const s = String(countdown % 60).padStart(2, '0');
+        if (countdownEl) countdownEl.textContent = `⟳ auto-sync dans ${m}:${s}`;
+      }, 1000);
+    });
+  </script>
+
+  <script>
+    (function () {
+      // ═══════════════════════════════════════════════════════════════
+      // CONFIG — Page 2 (VDC / Tickets) — namespacé via IIFE pour éviter
+      // toute collision de noms avec le script de la Page 1.
+      // ═══════════════════════════════════════════════════════════════
+      // Primary: Google Apps Script Web App (JSON)
+      const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx9lb52mFakdzj4Mc0JVXCxM_bP1eOMEupWPP0aNFXphES8LVu-89IP7kjWssTj5DP-hg/exec';
+      // Fallback: Published CSV
+      const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRuLVk-JoRxWuHprmDwfRGp6UpwyN5nVhoElQvzKlGiPv7mVaf8tj_bXs3fl0uztwj7y0OnuySrh62h/pub?gid=0&single=true&output=csv';
+
+      const AGENT_COLORS = [
+        '#0ABAB5', '#C9A84C', '#27ae60', '#8e44ad', '#e67e22',
+        '#088a86', '#a8842e', '#1a9e52', '#5b2a8a', '#c05c00'
+      ];
+
+      // ═══════════════════════════════════════════════════════════════
+      // STATE
+      // ═══════════════════════════════════════════════════════════════
+      let allRows = [];
+      let charts = {};
+
+      // ═══════════════════════════════════════════════════════════════
+      // PARSE CSV
+      // ═══════════════════════════════════════════════════════════════
+      function parseCSV(text) {
+        const lines = text.trim().split('\n');
+        const headers = parseCSVLine(lines[0]).map(h => h.replace(/^"|"$/g, '').trim());
+        return lines.slice(1).map(line => {
+          const vals = parseCSVLine(line);
+          const obj = {};
+          headers.forEach((h, i) => { obj[h] = (vals[i] || '').replace(/^"|"$/g, '').trim(); });
+          return obj;
+        }).filter(r => r['Agent'] && r['Agent'].length > 0);
+      }
+
+      function parseCSVLine(line) {
+        const result = []; let cur = ''; let inQ = false;
+        for (let i = 0; i < line.length; i++) {
+          const c = line[i];
+          if (c === '"') { if (inQ && line[i + 1] === '"') { cur += '"'; i++; } else inQ = !inQ; }
+          else if (c === ',' && !inQ) { result.push(cur); cur = ''; }
+          else cur += c;
+        }
+        result.push(cur);
+        return result;
+      }
+
+      // ═══════════════════════════════════════════════════════════════
+      // DATE & DURATION PARSING
+      // ═══════════════════════════════════════════════════════════════
+      function parseDate(str) {
+        if (!str) return null;
+        const m = str.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+        if (m) return new Date(`${m[3]}-${m[2]}-${m[1]}`);
+        const d = new Date(str);
+        return isNaN(d) ? null : d;
+      }
+
+      function parseReceptionDate(str) {
+        if (!str) return null;
+        const match = str.match(/(\w+ \w+ \d+ \d+ \d+:\d+:\d+ GMT[+-]\d+)/);
+        if (match) { const d = new Date(match[1]); return isNaN(d) ? null : d; }
+        return null;
+      }
+
+      function parseDMT(str) {
+        if (!str) return null;
+        const mMatch = str.match(/(\d+)m/);
+        const sMatch = str.match(/(\d+)s/);
+        const mins = mMatch ? parseInt(mMatch[1]) : 0;
+        const secs = sMatch ? parseInt(sMatch[1]) : 0;
+        return mins * 60 + secs;
+      }
+
+      function secondsToHuman(secs) {
+        if (secs === null || isNaN(secs)) return '—';
+        const total = Math.round(secs);
+        const h = Math.floor(total / 3600);
+        const m = Math.floor((total % 3600) / 60);
+        const s = total % 60;
+        return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+      }
+
+      function secondsToDays(secs) {
+        if (secs === null || isNaN(secs)) return null;
+        const totalMins = Math.floor(secs / 60);
+        const days = Math.floor(secs / 86400);
+        const hrs = Math.floor((secs % 86400) / 3600);
+        const mins = Math.floor((secs % 3600) / 60);
+        if (days > 0) return `${days}j ${hrs}h ${String(mins).padStart(2, '0')}m`;
+        if (hrs > 0) return `${hrs}h ${String(mins).padStart(2, '0')}m`;
+        return `${mins}m`;
+      }
+
+
+      function getWeekNumber(date) {
+        // ISO 8601 week: Monday = day 1
+        const d = new Date(date);
+        d.setHours(0, 0, 0, 0);
+        d.setDate(d.getDate() + 3 - (d.getDay() + 6) % 7);
+        const week1 = new Date(d.getFullYear(), 0, 4);
+        return 1 + Math.round(((d.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
+      }
+
+      // Returns the Monday date of an ISO week key like "2025-S03"
+      function getMondayOfWeek(weekKey) {
+        const [year, sNum] = weekKey.split('-S');
+        const y = parseInt(year), w = parseInt(sNum);
+        // 4 Jan is always in week 1
+        const jan4 = new Date(y, 0, 4);
+        const jan4Day = (jan4.getDay() + 6) % 7; // 0=Mon
+        const monday = new Date(jan4.getTime() - jan4Day * 86400000 + (w - 1) * 7 * 86400000);
+        return monday;
+      }
+
+      function weekLabel(weekKey) {
+        const monday = getMondayOfWeek(weekKey);
+        const sunday = new Date(monday.getTime() + 6 * 86400000);
+        const fmt = d => d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+        const [y, sNum] = weekKey.split('-S');
+        return `S${sNum} — ${fmt(monday)} au ${fmt(sunday)}`;
+      }
+
+      function getMonthKey(date) {
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      }
+      function monthLabel(key) {
+        const [y, m] = key.split('-');
+        return new Date(y, parseInt(m) - 1).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+      }
+
+      // ═══════════════════════════════════════════════════════════════
+      // ENRICH
+      // ═══════════════════════════════════════════════════════════════
+      function enrichRows(rows) {
+        return rows.map(r => {
+          const debutDate = parseDate(r['Début Traitement']);
+          const receptionDate = parseReceptionDate(r['Réception S2']);
+          const dmtSec = parseDMT(r['DMT']);
+
+          let dmpcSec = null;
+          if (debutDate && receptionDate) {
+            const diff = (debutDate - receptionDate) / 1000;
+            if (diff >= 0 && diff < 86400 * 365) dmpcSec = diff;
+          }
+
+          const dateStr = debutDate ? debutDate.toISOString().split('T')[0] : null;
+          const week = debutDate ? getWeekNumber(debutDate) : null;
+          const weekYear = debutDate ? debutDate.getFullYear() : null;
+          const month = debutDate ? getMonthKey(debutDate) : null;
+          const weekKey = (week && weekYear) ? `${weekYear}-S${String(week).padStart(2, '0')}` : null;
+
+          return { ...r, _debutDate: debutDate, _dmtSec: dmtSec, _dmpcSec: dmpcSec, _dateStr: dateStr, _week: weekKey, _month: month };
+        });
+      }
+
+      // ═══════════════════════════════════════════════════════════════
+      // FETCH  —  Apps Script (JSON) → fallback CSV
+      // ═══════════════════════════════════════════════════════════════
+
+      // Normalize a row regardless of source (JSON obj or CSV obj)
+      function normalizeRow(r) {
+        // Apps Script may return keys like "agent", "Agent", etc.
+        // We map common variants to canonical column names
+        const MAP = {
+          'agent': 'Agent', 'id activité': 'ID Activité', 'id_activite': 'ID Activité',
+          'boutique': 'Boutique', 'type': 'Type', 'client': 'Client', 'zone': 'Zone',
+          'statut': 'Statut', 'motif rejet': 'Motif Rejet', 'motif_rejet': 'Motif Rejet',
+          'réception s2': 'Réception S2', 'reception_s2': 'Réception S2', 'reception s2': 'Réception S2',
+          'début traitement': 'Début Traitement', 'debut_traitement': 'Début Traitement', 'debut traitement': 'Début Traitement',
+          'fin traitement': 'Fin Traitement', 'fin_traitement': 'Fin Traitement', 'fin traitement': 'Fin Traitement',
+          'dmt': 'DMT', 'date enregistrement': 'Date enregistrement', 'date_enregistrement': 'Date enregistrement',
+        };
+        const out = {};
+        Object.entries(r).forEach(([k, v]) => {
+          const norm = MAP[k.toLowerCase().trim()];
+          out[norm || k] = v;
+        });
+        return out;
+      }
+
+      async function fetchFromAppsScript() {
+        const url = APPS_SCRIPT_URL + '?action=getData&_t=' + Date.now();
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('Apps Script HTTP ' + res.status);
+
+        const text = await res.text();
+        let json;
+        try { json = JSON.parse(text); }
+        catch (e) { throw new Error('Réponse Apps Script non-JSON: ' + text.slice(0, 120)); }
+
+        if (json && json.error) throw new Error('Apps Script error: ' + json.error);
+
+        // Accepter tous les formats courants
+        let rows = Array.isArray(json) ? json
+          : Array.isArray(json.data) ? json.data
+            : Array.isArray(json.values) ? json.values
+              : Array.isArray(json.rows) ? json.rows
+                : Array.isArray(json.tickets) ? json.tickets
+                  : null;
+
+        if (!rows) throw new Error('Format JSON non reconnu. Clés: ' + Object.keys(json).join(', '));
+
+        // Tableau de tableaux (1ère ligne = headers)
+        if (rows.length > 0 && Array.isArray(rows[0])) {
+          const headers = rows[0];
+          rows = rows.slice(1).map(row => {
+            const obj = {};
+            headers.forEach((h, i) => { obj[String(h).trim()] = row[i] !== undefined ? String(row[i]) : ''; });
+            return obj;
+          });
+        }
+
+        const normalized = rows.map(normalizeRow).filter(r => r['Agent'] && String(r['Agent']).trim().length > 0);
+        if (normalized.length === 0) throw new Error('Aucune ligne avec un Agent valide.');
+        return normalized;
+      }
+
+      async function fetchFromCSV() {
+        const res = await fetch(CSV_URL + '&_t=' + Date.now());
+        if (!res.ok) throw new Error(`CSV HTTP ${res.status}`);
+        const text = await res.text();
+        return parseCSV(text);
+      }
+
+      async function fetchData() {
+        const sourceEl = document.getElementById('data-source');
+        try {
+          let raw;
+          try {
+            raw = await fetchFromAppsScript();
+            if (sourceEl) sourceEl.textContent = '🟢 Apps Script';
+          } catch (e1) {
+            console.warn('Apps Script failed, falling back to CSV:', e1.message);
+            raw = await fetchFromCSV();
+            if (sourceEl) sourceEl.textContent = '🟡 CSV (fallback)';
+          }
+          allRows = enrichRows(raw);
+          populateFilters();
+          applyFilters();
+          document.getElementById('last-sync').textContent =
+            'Sync ' + new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+          hideError();
+        } catch (e) {
+          console.error('All sources failed:', e);
+          showError(e.message);
+          if (allRows.length > 0) applyFilters();
+        } finally {
+          document.getElementById('loadingOverlay').classList.add('hidden');
+        }
+      }
+
+      function showError(msg) {
+        document.getElementById('error-detail').textContent = '— ' + msg;
+        document.getElementById('error-banner').classList.add('visible');
+      }
+      function hideError() {
+        document.getElementById('error-banner').classList.remove('visible');
+      }
+
+      // ═══════════════════════════════════════════════════════════════
+      // POPULATE FILTERS
+      // ═══════════════════════════════════════════════════════════════
+      function populateFilters() {
+        updateAllFilterOptionsVDC();
+        const dates = allRows.map(r => r._dateStr).filter(Boolean).sort();
+        if (dates.length) {
+          document.getElementById('f-date-from').value = dates[0];
+          document.getElementById('f-date-to').value = dates[dates.length - 1];
+        }
+      }
+
+      function fillSelect(id, values, labelFn = v => v) {
+        const sel = document.getElementById(id);
+        const cur = sel.value;
+        while (sel.options.length > 1) sel.remove(1);
+        values.forEach(v => {
+          const opt = document.createElement('option');
+          opt.value = v; opt.textContent = labelFn(v);
+          sel.add(opt);
+        });
+        sel.value = values.includes(cur) ? cur : '';
+      }
+
+      // ═══════════════════════════════════════════════════════════════
+      // FILTER
+      // ═══════════════════════════════════════════════════════════════
+      function getFilters() {
+        return {
+          from: document.getElementById('f-date-from').value,
+          to: document.getElementById('f-date-to').value,
+          month: document.getElementById('f-month').value,
+          week: document.getElementById('f-week').value,
+          agent: document.getElementById('f-agent').value,
+          zone: document.getElementById('f-zone').value,
+          type: document.getElementById('f-type').value,
+        };
+      }
+
+      // Teste si une ligne correspond à l'état de filtres donné, en ignorant
+      // volontairement le critère "exclude" (permet de calculer les options
+      // restantes d'un filtre en fonction de TOUS les autres filtres actifs).
+      function matchesFacetFiltersVDC(r, f, exclude) {
+        if (exclude !== 'from' && f.from && r._dateStr < f.from) return false;
+        if (exclude !== 'to' && f.to && r._dateStr > f.to) return false;
+        if (exclude !== 'month' && f.month && r._month !== f.month) return false;
+        if (exclude !== 'week' && f.week && r._week !== f.week) return false;
+        if (exclude !== 'agent' && f.agent && r['Agent'] !== f.agent) return false;
+        if (exclude !== 'zone' && f.zone && r['Zone'] !== f.zone) return false;
+        if (exclude !== 'type' && f.type && r['Type'] !== f.type) return false;
+        return true;
+      }
+
+      function rowsForFacetVDC(exclude) {
+        const f = getFilters();
+        return allRows.filter(r => matchesFacetFiltersVDC(r, f, exclude));
+      }
+
+      // Recalcule les options disponibles de tous les filtres catégoriels
+      // (Mois, Semaine, Type, Zone, Agent) selon les autres filtres actifs,
+      // en cascade combinée. Conserve la sélection en cours si elle reste valide.
+      function updateAllFilterOptionsVDC() {
+        const months = [...new Set(rowsForFacetVDC('month').map(r => r._month).filter(Boolean))].sort();
+        const weeks = [...new Set(rowsForFacetVDC('week').map(r => r._week).filter(Boolean))].sort();
+        const types = [...new Set(rowsForFacetVDC('type').map(r => r['Type']).filter(Boolean))].sort();
+        const zones = [...new Set(rowsForFacetVDC('zone').map(r => r['Zone']).filter(Boolean))].sort();
+        const agents = [...new Set(rowsForFacetVDC('agent').map(r => r['Agent']).filter(Boolean))].sort();
+
+        fillSelect('f-month', months, monthLabel);
+        fillSelect('f-week', weeks, weekLabel);
+        fillSelect('f-type', types);
+        fillSelect('f-zone', zones);
+        fillSelect('f-agent', agents);
+      }
+
+      function applyFilters() {
+        updateAllFilterOptionsVDC();
+        const f = getFilters();
+        let rows = allRows;
+        if (f.from) rows = rows.filter(r => r._dateStr >= f.from);
+        if (f.to) rows = rows.filter(r => r._dateStr <= f.to);
+        if (f.month) rows = rows.filter(r => r._month === f.month);
+        if (f.week) rows = rows.filter(r => r._week === f.week);
+        if (f.agent) rows = rows.filter(r => r['Agent'] === f.agent);
+        if (f.zone) rows = rows.filter(r => r['Zone'] === f.zone);
+        if (f.type) rows = rows.filter(r => r['Type'] === f.type);
+        renderDashboard(rows);
+      }
+
+      // ═══════════════════════════════════════════════════════════════
+      // RENDER
+      // ═══════════════════════════════════════════════════════════════
+      function renderDashboard(rows) {
+        renderKPIs(rows);
+        renderEvolutionChart(rows);
+        renderAgentTable(rows);
+        renderWeeklyTable(rows);
+        renderZoneWeekTable(rows);
+        renderTop5Boutiques(rows);
+        renderTop5Motifs(rows);
+        renderBoutiqueMotifGrid(rows);
+      }
+
+      function avg(arr) {
+        const v = arr.filter(x => x !== null && !isNaN(x));
+        return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
+      }
+
+      function renderKPIs(rows) {
+        const total = rows.length;
+        const valides = rows.filter(r => r['Statut'] === 'VALIDE').length;
+        const rejetes = rows.filter(r => r['Statut'] === 'REJETE').length;
+        const dmtAvg = avg(rows.map(r => r._dmtSec));
+        const dmpcAvg = avg(rows.map(r => r._dmpcSec));
+        const under24 = rows.filter(r => r._dmpcSec !== null && r._dmpcSec <= 86400).length;
+
+        set('kpi-total', total.toLocaleString('fr-FR'));
+        const valPct = total ? Math.round(valides / total * 100) : null;
+        const rejPct = total ? Math.round(rejetes / total * 100) : null;
+        const pct24h = total ? Math.round(under24 / total * 100) : null;
+
+        set('kpi-valide', valPct !== null ? `${valPct}%` : '—');
+        set('kpi-valide-pct', valPct !== null ? `${valides.toLocaleString('fr-FR')} tickets` : '—');
+        set('kpi-rejete', rejPct !== null ? `${rejPct}%` : '—');
+        set('kpi-rejete-pct', rejPct !== null ? `${rejetes.toLocaleString('fr-FR')} tickets` : '—');
+        set('kpi-dmt', secondsToHuman(dmtAvg));
+        set('kpi-dmpc', secondsToHuman(dmpcAvg));
+        const dmpcDaysEl = document.getElementById('kpi-dmpc-days');
+        if (dmpcDaysEl) dmpcDaysEl.textContent = '';
+
+        // ── DMPC alert badge on KPI card ──
+        const dmpcAlertEl = document.getElementById('kpi-dmpc-alert');
+        const dmpcCard = document.getElementById('kpi-dmpc-card');
+        if (dmpcAlertEl) {
+          if (dmpcAvg === null) {
+            dmpcAlertEl.innerHTML = '';
+          } else if (dmpcAvg > 86400) { // > 24h → rouge critique
+            dmpcAlertEl.innerHTML = '<span class="dmpc-alert">🔴 Délai critique (&gt; 24h)</span>';
+            if (dmpcCard) dmpcCard.style.setProperty('--card-accent', 'linear-gradient(90deg,#e74c3c,#c0392b)');
+          } else if (dmpcAvg > 43200) { // > 12h → orange avertissement
+            dmpcAlertEl.innerHTML = '<span class="dmpc-warn">🟠 Délai élevé (&gt; 12h)</span>';
+            if (dmpcCard) dmpcCard.style.setProperty('--card-accent', 'linear-gradient(90deg,#e67e22,#ca6f1e)');
+          } else {
+            dmpcAlertEl.innerHTML = '<span style="color:var(--green);font-size:11px;font-weight:700">✅ Délai normal</span>';
+            if (dmpcCard) dmpcCard.style.setProperty('--card-accent', 'linear-gradient(90deg,#8e44ad,#6c3483)');
+          }
+        }
+        set('kpi-24h', pct24h !== null ? `${pct24h}%` : '—');
+        const el24pct = document.getElementById('kpi-24h-pct');
+        if (el24pct) el24pct.textContent = pct24h !== null ? `${under24.toLocaleString('fr-FR')} tickets` : '—';
+      }
+
+      function set(id, val) { document.getElementById(id).textContent = val; }
+
+      function agentStats(rows) {
+        const map = {};
+        rows.forEach(r => {
+          const a = r['Agent']; if (!a) return;
+          if (!map[a]) map[a] = { count: 0, dmts: [], dmpcs: [], valide: 0, rejete: 0 };
+          map[a].count++;
+          if (r._dmtSec !== null) map[a].dmts.push(r._dmtSec);
+          if (r._dmpcSec !== null) map[a].dmpcs.push(r._dmpcSec);
+          if (r['Statut'] === 'VALIDE') map[a].valide++;
+          if (r['Statut'] === 'REJETE') map[a].rejete++;
+        });
+        return Object.entries(map)
+          .map(([name, d]) => ({ name, count: d.count, dmt: avg(d.dmts), dmpc: avg(d.dmpcs), valide: d.valide, rejete: d.rejete }))
+          .sort((a, b) => b.count - a.count);
+      }
+
+      // Chart helpers — light theme grid
+      const gridColor = 'rgba(0,0,0,.06)';
+      const ticksStyle = { color: '#5a6a7e', font: { size: 11, family: 'Sora' } };
+
+
+      function renderEvolutionChart(rows) {
+        const dateMap = {};
+        rows.forEach(r => { if (r._dateStr) dateMap[r._dateStr] = (dateMap[r._dateStr] || 0) + 1; });
+        const sorted = Object.keys(dateMap).sort();
+        const labels = sorted.map(d => new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }));
+        const data = sorted.map(d => dateMap[d]);
+
+        if (charts.evolution) charts.evolution.destroy();
+        const ctx = document.getElementById('chart-evolution').getContext('2d');
+        const grad = ctx.createLinearGradient(0, 0, 0, 260);
+        grad.addColorStop(0, 'rgba(10,186,181,.25)');
+        grad.addColorStop(1, 'rgba(10,186,181,0)');
+
+        charts.evolution = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels, datasets: [{
+              data, fill: true, backgroundColor: grad,
+              borderColor: '#0ABAB5', borderWidth: 2.5,
+              pointBackgroundColor: '#0ABAB5',
+              pointBorderColor: '#fff',
+              pointBorderWidth: 2,
+              pointRadius: 5, tension: 0.35
+            }]
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false }, tooltip: { callbacks: { label: i => ` ${i.raw} tickets` } } },
+            scales: {
+              x: { grid: { display: false }, ticks: { ...ticksStyle, maxTicksLimit: 10 } },
+              y: { grid: { display: false }, ticks: ticksStyle, beginAtZero: true }
+            }
+          }
+        });
+      }
+
+      function renderAgentTable(rows) {
+        const stats = agentStats(rows);
+        const maxCount = stats.length ? stats[0].count : 1;
+        const tbody = document.getElementById('agent-rows');
+        tbody.innerHTML = '';
+
+        if (!stats.length) {
+          tbody.innerHTML = '<tr><td colspan="7" style="padding:24px;color:#a0aab4;text-align:center">Aucune donnée pour cette sélection</td></tr>';
+          return;
+        }
+
+        stats.forEach((s, i) => {
+          const color = AGENT_COLORS[i % AGENT_COLORS.length];
+          const initials = s.name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+          const pct = Math.round(s.count / maxCount * 100);
+
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+      <td>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="agent-avatar" style="background:${color}1a;color:${color};border-color:${color}33">${initials}</div>
+          <span class="agent-name">${s.name}</span>
+        </div>
+      </td>
+      <td class="num" style="color:${color}">${s.count}</td>
+      <td style="min-width:140px">
+        <div class="agent-bar-wrap" style="width:100%"><div class="agent-bar" style="width:${pct}%;background:${color}"></div></div>
+      </td>
+      <td class="num">${secondsToHuman(s.dmt)}</td>
+      <td class="num">${secondsToHuman(s.dmpc)}</td>
+      <td><span class="pill pill-green">${s.valide} ✓</span></td>
+      <td><span class="pill pill-red">${s.rejete} ✗</span></td>
+    `;
+          tbody.appendChild(tr);
+        });
+      }
+
+      function renderWeeklyTable(rows) {
+        const weeks = [...new Set(rows.map(r => r._week).filter(Boolean))].sort();
+        const thead = document.getElementById('weekly-header');
+        const tbody = document.getElementById('weekly-body');
+
+        thead.innerHTML = '<th>KPI / Semaine</th>';
+        weeks.forEach(w => {
+          const [y, s] = w.split('-S');
+          const th = document.createElement('th');
+          th.textContent = `S${s}`;
+          th.title = weekLabel(w);
+          thead.appendChild(th);
+        });
+
+        const weekData = {};
+        weeks.forEach(wk => {
+          const wr = rows.filter(r => r._week === wk);
+          weekData[wk] = { count: wr.length, dmt: avg(wr.map(r => r._dmtSec)), dmpc: avg(wr.map(r => r._dmpcSec)) };
+        });
+
+        const metrics = [
+          { key: 'count', label: '🎫 Tickets traités', fmt: v => v.toLocaleString('fr-FR') },
+          { key: 'dmt', label: '⏱ DMT moyenne', fmt: secondsToHuman },
+          { key: 'dmpc', label: '⚡ DMPC moyenne', fmt: v => secondsToHuman(v), alert: true },
+        ];
+
+        tbody.innerHTML = '';
+        metrics.forEach(m => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td class="metric">${m.label}</td>`;
+          weeks.forEach(wk => {
+            const val = weekData[wk][m.key];
+            const td = document.createElement('td');
+            td.className = 'num';
+            if (val !== null && val !== undefined) {
+              td.textContent = m.fmt(val);
+              if (m.alert) {
+                if (val > 86400) {
+                  td.style.color = '#c0392b';
+                  td.title = '⚠ Délai critique : DMPC > 24h';
+                  td.innerHTML = `<span title="⚠ Délai critique : DMPC > 24h" style="display:inline-flex;align-items:center;gap:4px"><span style="font-size:13px">🔴</span><span class="dmpc-alert-inline">${m.fmt(val)}</span></span>`;
+                } else if (val > 43200) {
+                  td.title = '⚠ Délai élevé : DMPC > 12h';
+                  td.innerHTML = `<span title="⚠ Délai élevé : DMPC > 12h" style="display:inline-flex;align-items:center;gap:4px"><span style="font-size:13px">🟠</span><span class="dmpc-warn-inline">${m.fmt(val)}</span></span>`;
+                } else {
+                  td.innerHTML = `<span style="display:inline-flex;align-items:center;gap:4px"><span style="font-size:13px">🟢</span>${m.fmt(val)}</span>`;
+                }
+              }
+            } else {
+              td.textContent = '—';
+            }
+            tr.appendChild(td);
+          });
+          tbody.appendChild(tr);
+        });
+
+        if (!weeks.length) {
+          tbody.innerHTML = '<tr><td colspan="99" style="text-align:center;color:#a0aab4;padding:24px">Aucune donnée pour la période sélectionnée</td></tr>';
+        }
+      }
+
+      function renderZoneWeekTable(rows) {
+        const weeks = [...new Set(rows.map(r => r._week).filter(Boolean))].sort();
+        const zones = [...new Set(rows.map(r => r['Zone']).filter(Boolean))].sort();
+        const thead = document.getElementById('zone-week-header');
+        const tbody = document.getElementById('zone-week-body');
+
+        thead.innerHTML = '<th>Zone</th>';
+        weeks.forEach(w => {
+          const [y, s] = w.split('-S');
+          const th = document.createElement('th');
+          th.textContent = `S${s}`;
+          th.title = weekLabel(w);
+          thead.appendChild(th);
+        });
+        // add a totals column
+        const thTot = document.createElement('th');
+        thTot.textContent = 'TOTAL';
+        thTot.style.background = 'rgba(10,186,181,.1)';
+        thead.appendChild(thTot);
+
+        tbody.innerHTML = '';
+
+        if (!zones.length || !weeks.length) {
+          tbody.innerHTML = '<tr><td colspan="99" style="text-align:center;color:#a0aab4;padding:24px">Aucune donnée pour la période sélectionnée</td></tr>';
+          return;
+        }
+
+        // For each zone, show: tickets, valide%, DMPC
+        const SUB_METRICS = [
+          { key: 'count', label: '🎫 Tickets', fmt: v => v.toLocaleString('fr-FR'), cls: '' },
+          { key: 'dmt', label: '⏱ DMT', fmt: v => secondsToHuman(v), cls: '' },
+          { key: 'dmpc', label: '⚡ DMPC', fmt: v => secondsToHuman(v), alert: true, cls: 'purple-cell' },
+        ];
+
+        zones.forEach((zone, zi) => {
+          // Zone header row
+          const trHead = document.createElement('tr');
+          trHead.style.background = zi % 2 === 0 ? 'rgba(10,186,181,.04)' : 'rgba(201,168,76,.04)';
+          const tdZone = document.createElement('td');
+          tdZone.colSpan = weeks.length + 2;
+          tdZone.style.cssText = 'font-weight:800;font-size:12px;text-transform:uppercase;letter-spacing:.7px;color:var(--tiffany-dk);padding:8px 16px;border-top:2px solid var(--border);';
+          tdZone.textContent = `📍 ${zone}`;
+          trHead.appendChild(tdZone);
+          tbody.appendChild(trHead);
+
+          // Build zone × week data
+          const zoneWeekData = {};
+          let zoneTotal = { count: 0, dmtArr: [], dmpcArr: [] };
+          weeks.forEach(wk => {
+            const wr = rows.filter(r => r['Zone'] === zone && r._week === wk);
+            const count = wr.length;
+            const dmtArr = wr.map(r => r._dmtSec).filter(x => x !== null && !isNaN(x));
+            const dmpcArr = wr.map(r => r._dmpcSec).filter(x => x !== null && !isNaN(x));
+            zoneWeekData[wk] = { count, dmt: avg(dmtArr), dmpc: avg(dmpcArr) };
+            zoneTotal.count += count;
+            zoneTotal.dmtArr.push(...dmtArr);
+            zoneTotal.dmpcArr.push(...dmpcArr);
+          });
+          zoneTotal.dmt = avg(zoneTotal.dmtArr);
+          zoneTotal.dmpc = avg(zoneTotal.dmpcArr);
+
+          SUB_METRICS.forEach(m => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td class="metric" style="padding-left:30px;font-size:11px">${m.label}</td>`;
+            weeks.forEach(wk => {
+              const d = zoneWeekData[wk];
+              const td = document.createElement('td');
+              td.className = 'num';
+              if (d.count === 0) { td.textContent = '—'; td.style.color = '#ccc'; }
+              else if (m.alert && d[m.key] !== null) {
+                const val = d[m.key];
+                if (val > 86400) {
+                  td.innerHTML = `<span title="⚠ Délai critique : DMPC > 24h" style="display:inline-flex;align-items:center;gap:3px"><span>🔴</span><span class="dmpc-alert-inline">${m.fmt(val)}</span></span>`;
+                } else if (val > 43200) {
+                  td.innerHTML = `<span title="⚠ Délai élevé : DMPC > 12h" style="display:inline-flex;align-items:center;gap:3px"><span>🟠</span><span class="dmpc-warn-inline">${m.fmt(val)}</span></span>`;
+                } else {
+                  td.innerHTML = `<span style="display:inline-flex;align-items:center;gap:3px"><span>🟢</span>${m.fmt(val)}</span>`;
+                }
+              } else {
+                td.textContent = m.fmt(d[m.key]);
+              }
+              tr.appendChild(td);
+            });
+            // total col
+            const tdT = document.createElement('td');
+            tdT.className = 'num';
+            tdT.style.background = 'rgba(10,186,181,.07)';
+            tdT.style.fontWeight = '800';
+            if (m.key === 'count') tdT.textContent = zoneTotal.count.toLocaleString('fr-FR');
+            else if (m.key === 'dmt') tdT.textContent = m.fmt(zoneTotal.dmt);
+            else {
+              const val = zoneTotal.dmpc;
+              if (val !== null && m.alert) {
+                if (val > 86400) {
+                  tdT.innerHTML = `<span style="display:inline-flex;align-items:center;gap:3px"><span>🔴</span><span class="dmpc-alert-inline">${m.fmt(val)}</span></span>`;
+                } else if (val > 43200) {
+                  tdT.innerHTML = `<span style="display:inline-flex;align-items:center;gap:3px"><span>🟠</span><span class="dmpc-warn-inline">${m.fmt(val)}</span></span>`;
+                } else {
+                  tdT.innerHTML = `<span style="display:inline-flex;align-items:center;gap:3px"><span>🟢</span>${m.fmt(val)}</span>`;
+                }
+              } else {
+                tdT.textContent = m.fmt(val);
+              }
+            }
+            tr.appendChild(tdT);
+            tbody.appendChild(tr);
+          });
+        });
+      }
+
+      // ═══════════════════════════════════════════════════════════════
+      // TOP 5 BOUTIQUES & MOTIFS REJET
+      // ═══════════════════════════════════════════════════════════════
+      function top5Freq(rows, field) {
+        const map = {};
+        rows.forEach(r => {
+          const key = r[field];
+          if (!key) return;
+          if (!map[key]) map[key] = 0;
+          map[key]++;
+        });
+        return Object.entries(map)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 5);
+      }
+
+      // Top 5 boutiques triées par TAUX de rejet (rejets/tickets) décroissant
+      function top5BoutiquesByRate(allRows) {
+        const boutiques = [...new Set(allRows.map(r => r['Boutique']).filter(Boolean))];
+        return boutiques
+          .map(b => {
+            const bRows = allRows.filter(r => r['Boutique'] === b);
+            const nbRej = bRows.filter(r => r['Statut'] === 'REJETE').length;
+            const total = bRows.length;
+            const taux = total ? nbRej / total : 0;
+            return { boutique: b, nbRejets: nbRej, total, taux };
+          })
+          .filter(b => b.nbRejets > 0)
+          .sort((a, b) => b.taux - a.taux)
+          .slice(0, 5);
+      }
+
+      function renderTop5Boutiques(rows) {
+        const data = top5BoutiquesByRate(rows);
+        const tbody = document.getElementById('top-boutique-body');
+        tbody.innerHTML = '';
+
+        if (!data.length) {
+          tbody.innerHTML = '<tr><td colspan="4" style="padding:20px;color:#a0aab4;text-align:center">Aucune donnée</td></tr>';
+          return;
+        }
+
+        data.forEach(({ boutique, nbRejets, total, taux }) => {
+          const tauxStr = (taux * 100).toFixed(2);
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+      <td style="font-weight:600">${boutique}</td>
+      <td class="num">${total.toLocaleString('fr-FR')}</td>
+      <td class="num" style="color:#e74c3c;font-weight:800">${nbRejets.toLocaleString('fr-FR')}</td>
+      <td class="num"><span class="pill pill-red">${tauxStr}%</span></td>
+    `;
+          tbody.appendChild(tr);
+        });
+      }
+
+      function renderTop5Motifs(rows) {
+        const rejetes = rows.filter(r => r['Statut'] === 'REJETE');
+        const totalRej = rejetes.length; // dénominateur = total des rejets
+        const data = top5Freq(rejetes, 'Motif Rejet');
+        const tbody = document.getElementById('top-motif-body');
+        tbody.innerHTML = '';
+
+        if (!data.length) {
+          tbody.innerHTML = '<tr><td colspan="3" style="padding:20px;color:#a0aab4;text-align:center">Aucun rejet sur la période</td></tr>';
+          return;
+        }
+
+        data.forEach(([motif, count]) => {
+          // Taux = rejets motif / total rejets × 100
+          const taux = totalRej ? (count / totalRej * 100).toFixed(2) : '0.00';
+          const barW = totalRej ? Math.round(count / totalRej * 100) : 0;
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+      <td style="font-weight:600;white-space:normal;overflow-wrap:anywhere;word-break:break-word;line-height:1.3">${motif || '—'}</td>
+      <td class="num" style="color:#e74c3c;font-weight:800">${count.toLocaleString('fr-FR')}</td>
+      <td class="num">
+        <div style="display:flex;align-items:center;gap:6px">
+          <div style="flex:1;background:rgba(231,76,60,.12);border-radius:4px;height:6px;min-width:50px">
+            <div style="width:${barW}%;background:#e74c3c;height:6px;border-radius:4px"></div>
+          </div>
+          <span style="font-size:11px;font-weight:700;color:#e74c3c">${taux}%</span>
+        </div>
+      </td>
+    `;
+          tbody.appendChild(tr);
+        });
+      }
+
+      function renderBoutiqueMotifGrid(rows) {
+        const top5bouts = top5BoutiquesByRate(rows);
+        const grid = document.getElementById('boutique-motif-grid');
+        grid.innerHTML = '';
+
+        if (!top5bouts.length) {
+          grid.innerHTML = '<div style="color:#a0aab4;padding:20px">Aucune donnée de rejet sur la période.</div>';
+          return;
+        }
+
+        const RANK_COLORS = ['#0ABAB5', '#C9A84C', '#888', '#888', '#888'];
+
+        top5bouts.forEach(({ boutique, nbRejets, total: totalBout, taux }, bi) => {
+          const tauxBout = (taux * 100).toFixed(2);
+          const boutRejetes = rows.filter(r => r['Boutique'] === boutique && r['Statut'] === 'REJETE');
+          const motifs = top5Freq(boutRejetes, 'Motif Rejet');
+
+          const rankColor = RANK_COLORS[bi] || '#888';
+          const rankLabel = bi + 1;
+
+          // Taux motif = rejets motif / total rejets boutique × 100
+          const motifRowsHtml = motifs.length ? motifs.map(([motif, cnt], mi) => {
+            const t = nbRejets ? (cnt / nbRejets * 100).toFixed(2) : '0.00';
+            const barW = nbRejets ? Math.round(cnt / nbRejets * 100) : 0;
+            return `
+        <tr>
+          <td style="display:flex;align-items:flex-start;gap:8px;padding:7px 10px;border-bottom:1px solid var(--border);min-width:0">
+            <span style="min-width:18px;height:18px;border-radius:50%;background:${rankColor}22;color:${rankColor};font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;margin-top:1px;flex-shrink:0">${mi + 1}</span>
+            <span style="font-size:11px;line-height:1.35;color:var(--text);min-width:0;flex:1;overflow-wrap:anywhere;word-break:break-word;white-space:normal">${motif || '—'}</span>
+          </td>
+          <td style="padding:7px 10px;text-align:right;font-weight:800;color:#e74c3c;font-size:12px;white-space:nowrap;border-bottom:1px solid var(--border)">${cnt}</td>
+          <td style="padding:7px 10px;border-bottom:1px solid var(--border);min-width:80px">
+            <div style="display:flex;align-items:center;gap:4px">
+              <div style="flex:1;background:rgba(231,76,60,.1);border-radius:3px;height:5px">
+                <div style="width:${barW}%;background:#e74c3c;height:5px;border-radius:3px"></div>
+              </div>
+              <span style="font-size:10px;font-weight:700;color:#e74c3c;white-space:nowrap">${t}%</span>
+            </div>
+          </td>
+        </tr>`;
+          }).join('') : `<tr><td colspan="3" style="padding:14px 10px;color:#a0aab4;font-size:11px;text-align:center">Aucun motif renseigné</td></tr>`;
+
+          const card = document.createElement('div');
+          card.style.cssText = 'background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.06)';
+          card.innerHTML = `
+      <!-- Card header -->
+      <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:2px solid ${rankColor};background:#7B5230">
+        <div style="width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.2);color:#fff;font-weight:900;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0">${rankLabel}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:800;font-size:12px;color:#fff;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">🏪 ${boutique}</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.8);margin-top:2px">${nbRejets} rejets &nbsp;·&nbsp; Taux de rejet : <strong style="color:#ffd6cc">${tauxBout}%</strong> &nbsp;·&nbsp; ${totalBout} tickets traités</div>
+        </div>
+      </div>
+      <!-- Motif table header -->
+      <div style="display:grid;grid-template-columns:1fr 40px 90px;padding:5px 10px;background:var(--bg);border-bottom:1px solid var(--border)">
+        <span style="font-size:10px;font-weight:700;text-transform:uppercase;color:#a0aab4;letter-spacing:.5px">Motif de rejet</span>
+        <span style="font-size:10px;font-weight:700;text-transform:uppercase;color:#a0aab4;text-align:right;letter-spacing:.5px">NB</span>
+        <span style="font-size:10px;font-weight:700;text-transform:uppercase;color:#a0aab4;text-align:right;letter-spacing:.5px">Taux</span>
+      </div>
+      <!-- Motif rows -->
+      <table style="width:100%;border-collapse:collapse;table-layout:fixed">
+        <colgroup><col style="width:auto"><col style="width:40px"><col style="width:90px"></colgroup>
+        <tbody>${motifRowsHtml}</tbody>
+      </table>
+    `;
+          grid.appendChild(card);
+        });
+      }
+
+      // ═══════════════════════════════════════════════════════════════
+      // EVENTS
+      // ═══════════════════════════════════════════════════════════════
+      ['f-date-from', 'f-date-to', 'f-month', 'f-week', 'f-agent', 'f-zone', 'f-type']
+        .forEach(id => document.getElementById(id).addEventListener('change', applyFilters));
+
+      document.getElementById('reset-btn').addEventListener('click', () => {
+        const dates = allRows.map(r => r._dateStr).filter(Boolean).sort();
+        if (dates.length) {
+          document.getElementById('f-date-from').value = dates[0];
+          document.getElementById('f-date-to').value = dates[dates.length - 1];
+        } else {
+          ['f-date-from', 'f-date-to'].forEach(id => document.getElementById(id).value = '');
+        }
+        ['f-month', 'f-week', 'f-agent', 'f-zone', 'f-type'].forEach(id => document.getElementById(id).value = '');
+        applyFilters();
+      });
+
+      document.getElementById('sync-btn').addEventListener('click', () => {
+        document.getElementById('loadingOverlay').classList.remove('hidden');
+        fetchData();
+      });
+
+      // Expose un point d'entrée pour forcer le redimensionnement des graphiques
+      // Chart.js de cette page lorsqu'on bascule vers l'onglet VDC (voir switchTab
+      // dans le script de la Page 1) : le canvas peut avoir été créé alors que
+      // cette page était cachée (display:none), ce qui produirait un graphique 0×0.
+      window.__vdcResizeCharts = function () {
+        Object.keys(charts).forEach(k => { if (charts[k]) charts[k].resize(); });
+      };
+
+      // ═══════════════════════════════════════════════════════════════
+      // INIT
+      // ═══════════════════════════════════════════════════════════════
+      fetchData();
+      setInterval(fetchData, 15 * 60 * 1000);
+    })();
+  </script>
+</body>
+
+</html>
