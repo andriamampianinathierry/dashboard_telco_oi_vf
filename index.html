@@ -1495,7 +1495,7 @@
         </div>
         <div class="kpi-card teal">
           <div class="kpi-icon">⚡</div>
-          <div class="kpi-label">QS &lt; 20 sec</div>
+          <div class="kpi-label">SL &lt; 20 sec</div>
           <div class="kpi-value" id="kpiSl">—</div>
           <div class="kpi-sub">Pris en – de 20s / Appels traités</div>
           <div class="kpi-objectif">
@@ -1513,12 +1513,12 @@
             <span class="kpi-ecart" id="kpiFcrEcart">—</span>
           </div>
         </div>
-        <div class="kpi-card red">
+        <!-- <div class="kpi-card red">
           <div class="kpi-icon">📵</div>
           <div class="kpi-label">Taux d'appels perdus</div>
           <div class="kpi-value" id="kpiTauxPerdus">—</div>
           <div class="kpi-sub" id="kpiTauxPerdusAbs">Appels perdus / Entrants</div>
-        </div>
+        </div> -->
       </div>
       <div class="section-title">Volume d'appels & Qualité de Service</div>
       <div class="panel full-panel">
@@ -1551,7 +1551,7 @@
                 <th class="num">Moy. DMT</th>
                 <th class="num">Qualité de service (QS)</th>
                 <th class="num">Taux perdus (%)</th>
-                <th class="num">QS &lt; 20s</th>
+                <th class="num">SL &lt; 20s</th>
                 <th class="num">FCR</th>
               </tr>
             </thead>
@@ -2719,7 +2719,7 @@
 
       // Objectifs QS / FCR dynamiques selon le pôle filtré (FREE PRO = 94% / 91%, sinon valeurs par défaut)
       // Objectif QS dynamique selon la Zone filtrée (Zone = MAY → 90%, sinon 92%)
-      // Objectif QS < 20 sec : 85% pour RUN et MAY ; vide (pas d'objectif) pour la Zone = FREE
+      // Objectif SL < 20 sec : 85% pour RUN et MAY ; vide (pas d'objectif) pour la Zone = FREE
       const poleFiltre = document.getElementById('filterPole') ? document.getElementById('filterPole').value : '';
       const zoneFiltre = document.getElementById('filterZone') ? document.getElementById('filterZone').value : '';
       const objectifQS = getObjectifQS(poleFiltre, zoneFiltre);
@@ -2742,7 +2742,7 @@
       applyEcart('kpiQsEcart', kpi.qs !== null ? parseFloat(kpi.qs) : null, objectifQS);
       // Écart par rapport à l'objectif (FCR)
       applyEcart('kpiFcrEcart', kpi.fcr !== null ? parseFloat(kpi.fcr) : null, objectifFCR);
-      // Écart par rapport à l'objectif (QS < 20 sec)
+      // Écart par rapport à l'objectif (SL < 20 sec)
       applyEcart('kpiSlEcart', kpi.sl !== null ? parseFloat(kpi.sl) : null, objectifSL);
     }
 
@@ -2772,7 +2772,7 @@
       return String(pole || '').trim().toUpperCase() === 'FREE PRO' ? 94 : 92;
     }
 
-    // Objectif QS < 20 sec : 85% pour les zones RUN et MAY ; aucun objectif (vide) pour la Zone = FREE
+    // Objectif SL < 20 sec : 85% pour les zones RUN et MAY ; aucun objectif (vide) pour la Zone = FREE
     function getObjectifSL(zone) {
       return String(zone || '').trim().toUpperCase() === 'FREE' ? null : 85;
     }
@@ -2793,7 +2793,7 @@
     }
 
     function renderTableSous(data) {
-      // Objectifs QS / QS < 20 sec dynamiques selon la Zone (et le pôle pour QS) actuellement filtrés
+      // Objectifs QS / SL < 20 sec dynamiques selon la Zone (et le pôle pour QS) actuellement filtrés
       const poleFiltreSous = document.getElementById('filterPole') ? document.getElementById('filterPole').value : '';
       const zoneFiltreSous = document.getElementById('filterZone') ? document.getElementById('filterZone').value : '';
       const objectifQSSous = getObjectifQS(poleFiltreSous, zoneFiltreSous);
@@ -2938,7 +2938,7 @@
   </tr>`;
 
       // KPI definitions for page 1
-      // Objectifs QS / QS < 20 sec dynamiques selon la Zone (et le pôle pour QS) actuellement filtrés
+      // Objectifs QS / SL < 20 sec dynamiques selon la Zone (et le pôle pour QS) actuellement filtrés
       const poleFiltreM1 = document.getElementById('filterPole') ? document.getElementById('filterPole').value : '';
       const zoneFiltreM1 = document.getElementById('filterZone') ? document.getElementById('filterZone').value : '';
       const objectifQSM1 = getObjectifQS(poleFiltreM1, zoneFiltreM1);
@@ -2950,7 +2950,7 @@
         const cls = n >= objectifQSM1 ? 'mt-pct-good' : n >= (objectifQSM1 - 15) ? 'mt-pct-mid' : 'mt-pct-bad';
         return `<span class="${cls}">${v}</span>`;
       };
-      // Indicateur dédié QS < 20 sec : seuil binaire dynamique selon la Zone (rouge / vert), neutre si Zone = FREE (pas d'objectif)
+      // Indicateur dédié SL < 20 sec : seuil binaire dynamique selon la Zone (rouge / vert), neutre si Zone = FREE (pas d'objectif)
       const pillSL = (v) => {
         if (v === '—') return `<span style="color:var(--muted);">—</span>`;
         if (objectifSLM1 === null) return `<span style="color:var(--muted);">${v}</span>`;
@@ -3116,7 +3116,7 @@
   </tr>`;
 
       // KPI definitions (identiques à "KPIs par mois")
-      // Objectifs QS / QS < 20 sec dynamiques selon la Zone (et le pôle pour QS) actuellement filtrés
+      // Objectifs QS / SL < 20 sec dynamiques selon la Zone (et le pôle pour QS) actuellement filtrés
       const poleFiltreW1 = document.getElementById('filterPole') ? document.getElementById('filterPole').value : '';
       const zoneFiltreW1 = document.getElementById('filterZone') ? document.getElementById('filterZone').value : '';
       const objectifQSW1 = getObjectifQS(poleFiltreW1, zoneFiltreW1);
@@ -3261,7 +3261,7 @@
 
 
       // ── Auto-synchronisation silencieuse toutes les 15 minutes ───────────────────
-      const SYNC_INTERVAL = 15 * 60; // secondes
+      const SYNC_INTERVAL = 360 * 60; // secondes
       let countdown = SYNC_INTERVAL;
 
       // Countdown affiché dans le header
