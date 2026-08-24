@@ -1495,7 +1495,7 @@
         </div>
         <div class="kpi-card teal">
           <div class="kpi-icon">⚡</div>
-          <div class="kpi-label">SL &lt; 20 sec</div>
+          <div class="kpi-label">QS &lt; 20 sec</div>
           <div class="kpi-value" id="kpiSl">—</div>
           <div class="kpi-sub">Pris en – de 20s / Appels traités</div>
           <div class="kpi-objectif">
@@ -1513,12 +1513,12 @@
             <span class="kpi-ecart" id="kpiFcrEcart">—</span>
           </div>
         </div>
-        <!-- <div class="kpi-card red">
+        <div class="kpi-card red">
           <div class="kpi-icon">📵</div>
           <div class="kpi-label">Taux d'appels perdus</div>
           <div class="kpi-value" id="kpiTauxPerdus">—</div>
           <div class="kpi-sub" id="kpiTauxPerdusAbs">Appels perdus / Entrants</div>
-        </div> -->
+        </div>
       </div>
       <div class="section-title">Volume d'appels & Qualité de Service</div>
       <div class="panel full-panel">
@@ -1551,11 +1551,37 @@
                 <th class="num">Moy. DMT</th>
                 <th class="num">Qualité de service (QS)</th>
                 <th class="num">Taux perdus (%)</th>
-                <th class="num">SL &lt; 20s</th>
+                <th class="num">QS &lt; 20s</th>
                 <th class="num">FCR</th>
               </tr>
             </thead>
             <tbody id="tbodySous"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── TABLEAU COMPARAISON JOURNALIÈRE — PAGE 1 ── -->
+      <div class="section-title">Comparaison journalière</div>
+      <div class="panel full-width-panel">
+        <div class="mt-section-header">
+          <span class="panel-title">📅 KPIs par jour</span>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span class="panel-badge" id="dailyBadge1">—</span>
+            <button class="btn-export" title="Exporter" onclick="exportTableToCSV('dailyTable1', 'kpi_par_jour')">⬇</button>
+          </div>
+        </div>
+        <div class="monthly-table-wrap" style="padding:0;">
+          <table class="monthly-table" id="dailyTable1">
+            <thead id="dailyHead1">
+              <tr>
+                <th>KPI</th>
+              </tr>
+            </thead>
+            <tbody id="dailyBody1">
+              <tr>
+                <td colspan="2" class="empty-state" style="text-align:center;padding:20px;">En attente de données…</td>
+              </tr>
+            </tbody>
           </table>
         </div>
       </div>
@@ -2719,7 +2745,7 @@
 
       // Objectifs QS / FCR dynamiques selon le pôle filtré (FREE PRO = 94% / 91%, sinon valeurs par défaut)
       // Objectif QS dynamique selon la Zone filtrée (Zone = MAY → 90%, sinon 92%)
-      // Objectif SL < 20 sec : 85% pour RUN et MAY ; vide (pas d'objectif) pour la Zone = FREE
+      // Objectif QS < 20 sec : 85% pour RUN et MAY ; vide (pas d'objectif) pour la Zone = FREE
       const poleFiltre = document.getElementById('filterPole') ? document.getElementById('filterPole').value : '';
       const zoneFiltre = document.getElementById('filterZone') ? document.getElementById('filterZone').value : '';
       const objectifQS = getObjectifQS(poleFiltre, zoneFiltre);
@@ -2742,7 +2768,7 @@
       applyEcart('kpiQsEcart', kpi.qs !== null ? parseFloat(kpi.qs) : null, objectifQS);
       // Écart par rapport à l'objectif (FCR)
       applyEcart('kpiFcrEcart', kpi.fcr !== null ? parseFloat(kpi.fcr) : null, objectifFCR);
-      // Écart par rapport à l'objectif (SL < 20 sec)
+      // Écart par rapport à l'objectif (QS < 20 sec)
       applyEcart('kpiSlEcart', kpi.sl !== null ? parseFloat(kpi.sl) : null, objectifSL);
     }
 
@@ -2772,7 +2798,7 @@
       return String(pole || '').trim().toUpperCase() === 'FREE PRO' ? 94 : 92;
     }
 
-    // Objectif SL < 20 sec : 85% pour les zones RUN et MAY ; aucun objectif (vide) pour la Zone = FREE
+    // Objectif QS < 20 sec : 85% pour les zones RUN et MAY ; aucun objectif (vide) pour la Zone = FREE
     function getObjectifSL(zone) {
       return String(zone || '').trim().toUpperCase() === 'FREE' ? null : 85;
     }
@@ -2793,7 +2819,7 @@
     }
 
     function renderTableSous(data) {
-      // Objectifs QS / SL < 20 sec dynamiques selon la Zone (et le pôle pour QS) actuellement filtrés
+      // Objectifs QS / QS < 20 sec dynamiques selon la Zone (et le pôle pour QS) actuellement filtrés
       const poleFiltreSous = document.getElementById('filterPole') ? document.getElementById('filterPole').value : '';
       const zoneFiltreSous = document.getElementById('filterZone') ? document.getElementById('filterZone').value : '';
       const objectifQSSous = getObjectifQS(poleFiltreSous, zoneFiltreSous);
@@ -2894,6 +2920,143 @@
       return d && m && y ? d + '/' + m + '/' + y.slice(2) : iso;
     }
 
+    // ─── TABLEAU COMPARAISON JOURNALIÈRE — PAGE 1 ─────────────────────────────────
+    function renderDailyTable1(data) {
+      // Regrouper par jour (YYYY-MM-DD) en respectant les filtres actifs
+      const byDay = {};
+      data.forEach(r => {
+        const d = r.date || null;
+        if (!d) return;
+        if (!byDay[d]) byDay[d] = { entrants: 0, traites: 0, sl20: 0, fcr: 0, qualifie: 0, dmtW: 0, dmtT: 0 };
+        const day = byDay[d];
+        day.entrants += r.entrants;
+        day.traites += r.traites;
+        day.sl20 += r.sl20;
+        day.fcr += r.fcr;
+        day.qualifie += r.qualifie;
+        if (r.dmt > 0) { day.dmtW += r.dmt * (r.traites || 1); day.dmtT += (r.traites || 1); }
+      });
+
+      const days = Object.keys(byDay).sort();
+      const head = document.getElementById('dailyHead1');
+      const body = document.getElementById('dailyBody1');
+      const badge = document.getElementById('dailyBadge1');
+
+      if (!days.length) {
+        head.innerHTML = '<tr><th>KPI</th></tr>';
+        body.innerHTML = '<tr><td colspan="2" class="empty-state" style="text-align:center;padding:20px;">Aucune donnée</td></tr>';
+        if (badge) badge.textContent = '—';
+        return;
+      }
+
+      if (badge) badge.textContent = days.length + ' jour(s)';
+
+      // En-tête : ligne avec les jours
+      head.innerHTML = `<tr>
+    <th style="text-align:left;position:sticky;left:0;z-index:2;">KPI</th>
+    ${days.map(d => `<th style="text-align:right;">${fmtDate(d)}</th>`).join('')}
+  </tr>`;
+
+      // KPI definitions (identiques à "KPIs par mois")
+      // Objectifs QS / QS < 20 sec dynamiques selon la Zone (et le pôle pour QS) actuellement filtrés
+      const poleFiltreD1 = document.getElementById('filterPole') ? document.getElementById('filterPole').value : '';
+      const zoneFiltreD1 = document.getElementById('filterZone') ? document.getElementById('filterZone').value : '';
+      const objectifQSD1 = getObjectifQS(poleFiltreD1, zoneFiltreD1);
+      const objectifSLD1 = getObjectifSL(zoneFiltreD1);
+      const pct = (n, d) => d > 0 ? (n / d * 100).toFixed(1) + '%' : '—';
+      const pill1 = (v) => {
+        if (v === '—') return `<span style="color:var(--muted);">—</span>`;
+        const n = parseFloat(v);
+        const cls = n >= objectifQSD1 ? 'mt-pct-good' : n >= (objectifQSD1 - 15) ? 'mt-pct-mid' : 'mt-pct-bad';
+        return `<span class="${cls}">${v}</span>`;
+      };
+      // Indicateur dédié QS < 20 sec : seuil binaire dynamique selon la Zone (rouge / vert), neutre si Zone = FREE (pas d'objectif)
+      const pillSL = (v) => {
+        if (v === '—') return `<span style="color:var(--muted);">—</span>`;
+        if (objectifSLD1 === null) return `<span style="color:var(--muted);">${v}</span>`;
+        const n = parseFloat(v);
+        const cls = n >= objectifSLD1 ? 'mt-pct-good' : 'mt-pct-bad';
+        return `<span class="${cls}">${v}</span>`;
+      };
+      const pillPerd = (v) => {
+        if (v === '—') return `<span style="color:var(--muted);">—</span>`;
+        const n = parseFloat(v);
+        const cls = n < 5 ? 'mt-pct-good' : n < 15 ? 'mt-pct-mid' : 'mt-pct-bad';
+        return `<span class="${cls}">${v}</span>`;
+      };
+
+      // Calcul totaux pour ligne total
+      const totals = { entrants: 0, traites: 0, sl20: 0, fcr: 0, qualifie: 0, dmtW: 0, dmtT: 0 };
+      days.forEach(d => {
+        const day = byDay[d];
+        totals.entrants += day.entrants;
+        totals.traites += day.traites;
+        totals.sl20 += day.sl20;
+        totals.fcr += day.fcr;
+        totals.qualifie += day.qualifie;
+        totals.dmtW += day.dmtW;
+        totals.dmtT += day.dmtT;
+      });
+
+      const kpis = [
+        {
+          label: '📞 Appels entrants',
+          cell: d => `<span class="mt-num-grey">${d.entrants.toLocaleString('fr-FR')}</span>`,
+          total: `<span class="mt-num-grey">${totals.entrants.toLocaleString('fr-FR')}</span>`
+        },
+        {
+          label: '✅ Appels traités',
+          cell: d => `<span class="mt-num">${d.traites.toLocaleString('fr-FR')}</span>`,
+          total: `<span class="mt-num">${totals.traites.toLocaleString('fr-FR')}</span>`
+        },
+        {
+          label: '📵 Appels perdus',
+          cell: d => { const p = Math.max(0, d.entrants - d.traites); return `<span class="mt-num-red">${p.toLocaleString('fr-FR')}</span>`; },
+          total: () => { const p = Math.max(0, totals.entrants - totals.traites); return `<span class="mt-num-red">${p.toLocaleString('fr-FR')}</span>`; }
+        },
+        {
+          label: '🔢 Nbr FCR',
+          cell: d => `<span class="mt-num-grey">${d.fcr.toLocaleString('fr-FR')}</span>`,
+          total: () => `<span class="mt-num-grey">${totals.fcr.toLocaleString('fr-FR')}</span>`
+        },
+        {
+          label: '⏱ DMT moy.',
+          cell: d => `<span class="mt-num-grey">${d.dmtT ? fmtHHMMSS(Math.round(d.dmtW / d.dmtT)) : '—'}</span>`,
+          total: `<span class="mt-num-grey">${totals.dmtT ? fmtHHMMSS(Math.round(totals.dmtW / totals.dmtT)) : '—'}</span>`
+        },
+        {
+          label: '✅ QS (%)',
+          cell: d => pill1(pct(d.traites, d.entrants)),
+          total: () => pill1(pct(totals.traites, totals.entrants))
+        },
+        {
+          label: '📉 Taux perdus',
+          cell: d => { const p = Math.max(0, d.entrants - d.traites); return pillPerd(pct(p, d.entrants)); },
+          total: () => { const p = Math.max(0, totals.entrants - totals.traites); return pillPerd(pct(p, totals.entrants)); }
+        },
+        {
+          label: '⚡ SL < 20s',
+          cell: d => pillSL(pct(d.sl20, d.traites)),
+          total: () => pillSL(pct(totals.sl20, totals.traites))
+        },
+        {
+          label: '🎯 New FCR',
+          cell: d => `<span class="mt-pct-good">${pct(d.fcr, d.traites)}</span>`,
+          total: () => `<span class="mt-pct-good">${pct(totals.fcr, totals.traites)}</span>`
+        },
+        {
+          label: '🏷️ Taux Qualifié',
+          cell: d => `<span class="mt-num">${pct(d.qualifie, d.traites)}</span>`,
+          total: () => `<span class="mt-num">${pct(totals.qualifie, totals.traites)}</span>`
+        },
+      ];
+
+      body.innerHTML = kpis.map(kpi => {
+        const cells = days.map(d => `<td>${kpi.cell(byDay[d])}</td>`).join('');
+        return `<tr><td>${kpi.label}</td>${cells}</tr>`;
+      }).join('');
+    }
+
     // ─── TABLEAU COMPARAISON MENSUELLE — PAGE 1 ───────────────────────────────────
     function renderMonthlyTable1(data) {
       const MOIS_FR = ['Janv.', 'Févr.', 'Mars', 'Avr.', 'Mai', 'Juin', 'Juil.', 'Août', 'Sept.', 'Oct.', 'Nov.', 'Déc.'];
@@ -2938,7 +3101,7 @@
   </tr>`;
 
       // KPI definitions for page 1
-      // Objectifs QS / SL < 20 sec dynamiques selon la Zone (et le pôle pour QS) actuellement filtrés
+      // Objectifs QS / QS < 20 sec dynamiques selon la Zone (et le pôle pour QS) actuellement filtrés
       const poleFiltreM1 = document.getElementById('filterPole') ? document.getElementById('filterPole').value : '';
       const zoneFiltreM1 = document.getElementById('filterZone') ? document.getElementById('filterZone').value : '';
       const objectifQSM1 = getObjectifQS(poleFiltreM1, zoneFiltreM1);
@@ -2950,7 +3113,7 @@
         const cls = n >= objectifQSM1 ? 'mt-pct-good' : n >= (objectifQSM1 - 15) ? 'mt-pct-mid' : 'mt-pct-bad';
         return `<span class="${cls}">${v}</span>`;
       };
-      // Indicateur dédié SL < 20 sec : seuil binaire dynamique selon la Zone (rouge / vert), neutre si Zone = FREE (pas d'objectif)
+      // Indicateur dédié QS < 20 sec : seuil binaire dynamique selon la Zone (rouge / vert), neutre si Zone = FREE (pas d'objectif)
       const pillSL = (v) => {
         if (v === '—') return `<span style="color:var(--muted);">—</span>`;
         if (objectifSLM1 === null) return `<span style="color:var(--muted);">${v}</span>`;
@@ -3116,7 +3279,7 @@
   </tr>`;
 
       // KPI definitions (identiques à "KPIs par mois")
-      // Objectifs QS / SL < 20 sec dynamiques selon la Zone (et le pôle pour QS) actuellement filtrés
+      // Objectifs QS / QS < 20 sec dynamiques selon la Zone (et le pôle pour QS) actuellement filtrés
       const poleFiltreW1 = document.getElementById('filterPole') ? document.getElementById('filterPole').value : '';
       const zoneFiltreW1 = document.getElementById('filterZone') ? document.getElementById('filterZone').value : '';
       const objectifQSW1 = getObjectifQS(poleFiltreW1, zoneFiltreW1);
@@ -3195,7 +3358,7 @@
       }).join('');
     }
 
-    function renderAll() { renderKPIs(computeKPIs(filtered)); renderTableSous(filtered); renderChart(filtered); renderMonthlyTable1(filtered); renderWeeklyTable1(filtered); }
+    function renderAll() { renderKPIs(computeKPIs(filtered)); renderTableSous(filtered); renderChart(filtered); renderDailyTable1(filtered); renderMonthlyTable1(filtered); renderWeeklyTable1(filtered); }
     function showLoading(msg) { document.getElementById('loadingMsg').textContent = msg; document.getElementById('loadingOverlay').classList.remove('hidden'); }
     function hideLoading() { document.getElementById('loadingOverlay').classList.add('hidden'); }
     function showError(msg) { const el = document.getElementById('errorBanner'); el.innerHTML = '⚠️ ' + msg; el.classList.add('show'); }
@@ -3261,7 +3424,7 @@
 
 
       // ── Auto-synchronisation silencieuse toutes les 15 minutes ───────────────────
-      const SYNC_INTERVAL = 360 * 60; // secondes
+      const SYNC_INTERVAL = 15 * 60; // secondes
       let countdown = SYNC_INTERVAL;
 
       // Countdown affiché dans le header
@@ -4041,7 +4204,7 @@
           const barW = totalRej ? Math.round(count / totalRej * 100) : 0;
           const tr = document.createElement('tr');
           tr.innerHTML = `
-      <td style="font-weight:600;white-space:normal;overflow-wrap:anywhere;word-break:break-word;line-height:1.3">${motif || '—'}</td>
+      <td style="font-weight:600;white-space:normal;line-height:1.3">${motif || '—'}</td>
       <td class="num" style="color:#e74c3c;font-weight:800">${count.toLocaleString('fr-FR')}</td>
       <td class="num">
         <div style="display:flex;align-items:center;gap:6px">
@@ -4082,9 +4245,9 @@
             const barW = nbRejets ? Math.round(cnt / nbRejets * 100) : 0;
             return `
         <tr>
-          <td style="display:flex;align-items:flex-start;gap:8px;padding:7px 10px;border-bottom:1px solid var(--border);min-width:0">
-            <span style="min-width:18px;height:18px;border-radius:50%;background:${rankColor}22;color:${rankColor};font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;margin-top:1px;flex-shrink:0">${mi + 1}</span>
-            <span style="font-size:11px;line-height:1.35;color:var(--text);min-width:0;flex:1;overflow-wrap:anywhere;word-break:break-word;white-space:normal">${motif || '—'}</span>
+          <td style="display:flex;align-items:flex-start;gap:8px;padding:7px 10px;border-bottom:1px solid var(--border)">
+            <span style="min-width:18px;height:18px;border-radius:50%;background:${rankColor}22;color:${rankColor};font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;margin-top:1px">${mi + 1}</span>
+            <span style="font-size:11px;line-height:1.35;color:var(--text)">${motif || '—'}</span>
           </td>
           <td style="padding:7px 10px;text-align:right;font-weight:800;color:#e74c3c;font-size:12px;white-space:nowrap;border-bottom:1px solid var(--border)">${cnt}</td>
           <td style="padding:7px 10px;border-bottom:1px solid var(--border);min-width:80px">
