@@ -1583,6 +1583,7 @@
                 <th>Agent</th>
                 <th class="num">Appels traités</th>
                 <th class="num">Moy. DMT</th>
+                <th class="num">ACW</th>
                 <th class="num">Qualité de service (QS)</th>
                 <th class="num">QS &lt; 20s</th>
                 <th class="num">Nbr FCR</th>
@@ -3007,24 +3008,26 @@
       const g = {};
       data.forEach(r => {
         if (!r.agent || r.agent === '0') return;
-        if (!g[r.agent]) g[r.agent] = { entrants: 0, traites: 0, sl20: 0, fcr: 0, dmtW: 0, dmtT: 0, nom: '' };
+        if (!g[r.agent]) g[r.agent] = { entrants: 0, traites: 0, sl20: 0, fcr: 0, dmtW: 0, dmtT: 0, acwW: 0, acwT: 0, nom: '' };
         const d = g[r.agent];
         d.entrants += r.entrants;
         d.traites += r.traites;
         d.sl20 += r.sl20;
         d.fcr += r.fcr;
         if (r.dmt > 0) { d.dmtW += r.dmt * (r.traites || 1); d.dmtT += (r.traites || 1); }
+        if (r.dureePostTravail > 0) { d.acwW += r.dureePostTravail * (r.traites || 1); d.acwT += (r.traites || 1); }
         if (!d.nom && r.agentNom) d.nom = r.agentNom;
       });
       const keys = Object.keys(g).sort((a, b) => g[b].traites - g[a].traites);
       document.getElementById('agentBadge').textContent = keys.length + ' agent(s)';
       const tbody = document.getElementById('tbodyAgent');
       tbody.innerHTML = '';
-      if (!keys.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Aucune donnée agent disponible</td></tr>'; return; }
+      if (!keys.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty-state">Aucune donnée agent disponible</td></tr>'; return; }
       keys.forEach(k => {
         const d = g[k];
         const label = d.nom || k; // Affiche le nom de l'agent si disponible, sinon retombe sur son identifiant
         const dmtMoy = d.dmtT ? Math.round(d.dmtW / d.dmtT) : null;
+        const acwMoy = d.acwT ? Math.round(d.acwW / d.acwT) : null;
         const qsPct = d.entrants > 0 ? (d.traites / d.entrants * 100).toFixed(1) : null;
         const slPct = d.traites && d.sl20 > 0 ? (d.sl20 / d.traites * 100).toFixed(1) : null;
         const fcrPct = d.traites && d.fcr > 0 ? (d.fcr / d.traites * 100).toFixed(1) : null;
@@ -3033,6 +3036,7 @@
           `<td><strong>${label}</strong></td>` +
           `<td class="num-tiffany">${d.traites.toLocaleString('fr-FR')}</td>` +
           `<td class="num-grey">${fmtHHMMSS(dmtMoy)}</td>` +
+          `<td class="num-grey">${fmtHHMMSS(acwMoy)}</td>` +
           `<td class="num">${qsPct !== null ? pillQS(parseFloat(qsPct), objectifQSA) : '<span class="pill pill-amber">—</span>'}</td>` +
           `<td class="num">${slPct !== null ? pillQS(parseFloat(slPct), objectifSLA) : '<span class="pill pill-amber">—</span>'}</td>` +
           `<td class="num-grey">${d.fcr.toLocaleString('fr-FR')}</td>` +
