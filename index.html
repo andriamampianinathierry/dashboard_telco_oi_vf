@@ -16,7 +16,7 @@
       --border: #cccccc;
       --accent: #0abfbc;
       --accent2: #0abfbc;
-      --accent3: #7dd8d6;
+      --accent3: #7dd8d6;d:\Utilisateurs\thierry3\OneDrive - Axian Group\Documents\CCM MVOLA\TELCOI\SOURCE HTML\index_dash_oi_aout.html
       --accent4: #e05c5c;
       --text: #222222;
       --muted: #777777;
@@ -1440,6 +1440,12 @@
             <div class="multiselect-dropdown" id="filterSousDropdown"></div>
           </div>
         </div>
+        <div class="filter-group">
+          <span class="filter-label">👤 Agent</span>
+          <select id="filterAgent" onchange="onAgentChange()">
+            <option value="">Tous les agents</option>
+          </select>
+        </div>
         <button class="btn-apply" onclick="applyFilters()">▶ Appliquer</button>
         <button class="btn-reset" onclick="resetFilters()">↺ Réinitialiser</button>
       </div>
@@ -1556,6 +1562,65 @@
               </tr>
             </thead>
             <tbody id="tbodySous"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── TABLEAU DÉTAIL PAR AGENT — PAGE 1 ── -->
+      <div class="section-title">Détail par agent</div>
+      <div class="panel full-width-panel">
+        <div class="panel-header">
+          <span class="panel-title">📋 KPI par agent</span>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span class="panel-badge" id="agentBadge">—</span>
+            <button class="btn-export" title="Exporter" onclick="exportTableToCSV('tableAgent', 'kpi_par_agent')">⬇</button>
+          </div>
+        </div>
+        <div class="panel-body table-scroll" style="padding:0">
+          <table class="dash-table" id="tableAgent">
+            <thead>
+              <tr>
+                <th>Agent</th>
+                <th class="num">Appels traités</th>
+                <th class="num">Moy. DMT</th>
+                <th class="num">Qualité de service (QS)</th>
+                <th class="num">QS &lt; 20s</th>
+                <th class="num">Nbr FCR</th>
+                <th class="num">FCR</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyAgent"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── TABLEAU DÉTAIL PAR HEURE — PAGE 1 ── -->
+      <div class="section-title">Détail par heure</div>
+      <div class="panel full-width-panel">
+        <div class="panel-header">
+          <span class="panel-title">🕐 KPI par heure</span>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span class="panel-badge" id="heureBadge">—</span>
+            <button class="btn-export" title="Exporter" onclick="exportTableToCSV('tableHeure', 'kpi_par_heure')">⬇</button>
+          </div>
+        </div>
+        <div class="panel-body table-scroll" style="padding:0">
+          <table class="dash-table" id="tableHeure">
+            <thead>
+              <tr>
+                <th>Heure</th>
+                <th class="num">Appels entrants</th>
+                <th class="num">Appels traités</th>
+                <th class="num">Appels perdus</th>
+                <th class="num">Nbr FCR</th>
+                <th class="num">Moy. DMT</th>
+                <th class="num">Qualité de service (QS)</th>
+                <th class="num">Taux perdus (%)</th>
+                <th class="num">QS &lt; 20s</th>
+                <th class="num">FCR</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyHeure"></tbody>
           </table>
         </div>
       </div>
@@ -1908,6 +1973,8 @@
       dureePriseEnCharge: ['dureepriseencharge', 'duree_prise_en_charge', 'priseencharge', 'prise_en_charge'],
       qualif: ['nomquai', 'nom_quai', 'nomqualification', 'nom_qualification', 'nomqualif', 'qualification', 'qualif', 'qualifie'],
       agent: ['idagent', 'id_agent', 'agentid', 'agent'],
+      agentNom: ['nomagent', 'nom_agent', 'agentname', 'nomcompletagent', 'nom_complet_agent', 'nomdelagent', 'agentnom'],
+      heure: ['heureappel', 'heure_appel', 'heuredebut', 'heure_debut', 'heurereception', 'heure_reception', 'tranchehoraire', 'creneauhoraire', 'creneau', 'hourofcall', 'heure', 'hour'],
       mois: ['mois', 'month'],
     };
 
@@ -2076,6 +2143,47 @@
       return cleanStr(raw);
     }
 
+    // Extraction de l'heure d'appel (0-23) : essaie d'abord une colonne "heure" dédiée,
+    // puis retombe sur la portion horaire éventuellement présente dans la colonne date
+    // (ex : "21/09/2026 08:15:00"), ou sur un sérial Excel fractionnaire (0.xxxx = fraction de jour).
+    function extractHeure(rawDate, rawHeure) {
+      const parseHourStr = (raw) => {
+        if (raw === null || raw === undefined) return null;
+        const s = cleanStr(raw);
+        if (!s) return null;
+        // HH:MM(:SS) ou HHhMM
+        const m = s.match(/^(\d{1,2})\s*[:hH]\s*(\d{0,2})/);
+        if (m) {
+          const h = parseInt(m[1], 10);
+          if (h >= 0 && h <= 23) return h;
+        }
+        // Sérial Excel fractionnaire (fraction de journée, ex : 0.354166 = 08:30)
+        const f = parseFloat(s.replace(',', '.'));
+        if (!isNaN(f) && f >= 0 && f < 1) {
+          return Math.min(23, Math.floor(f * 24));
+        }
+        // Nombre entier simple (0-23) représentant directement l'heure
+        if (/^\d{1,2}$/.test(s)) {
+          const h = parseInt(s, 10);
+          if (h >= 0 && h <= 23) return h;
+        }
+        return null;
+      };
+
+      const fromHeureCol = parseHourStr(rawHeure);
+      if (fromHeureCol !== null) return fromHeureCol;
+
+      if (rawDate) {
+        const s = cleanStr(rawDate);
+        const m = s.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+        if (m) {
+          const h = parseInt(m[1], 10);
+          if (h >= 0 && h <= 23) return h;
+        }
+      }
+      return null;
+    }
+
     // ─── PARSING CSV ──────────────────────────────────────────────────────────────
     function parseCSV(text) {
       const rows = []; let cur = [], field = '', inQ = false;
@@ -2168,7 +2276,9 @@
         const sous = toText(get('sous')) || 'Non défini';
         const file = toText(get('file')) || '';
         const agent = toText(get('agent')) || '';
+        const agentNom = toText(get('agentNom')) || '';
         const mois = toText(get('mois')) || '';
+        const heure = extractHeure(rawDate, get('heure'));
 
         // ── Qualification ──
         const qualifRaw = toText(get('qualif')).toUpperCase().trim();
@@ -2181,7 +2291,7 @@
         }
 
         RAW_DATA.push({
-          date: isoDate, pole, sous, file, agent, mois,
+          date: isoDate, pole, sous, file, agent, agentNom, mois, heure,
           entrants, traites, sl20, sl10, fcr, dmt, dureePostTravail, dureeAppel, dmpc, dureePriseEnCharge,
           qualifie: isQualifie ? 1 : 0,
         });
@@ -2347,6 +2457,7 @@
         sous: selectedSous,
         mois: document.getElementById('filterMois').value,
         semaine: document.getElementById('filterSemaine').value,
+        agent: document.getElementById('filterAgent') ? document.getElementById('filterAgent').value : '',
       };
     }
 
@@ -2365,6 +2476,7 @@
         const rSemaine = r.date ? getISOWeekKey1(r.date) : '';
         if (rSemaine !== f.semaine) return false;
       }
+      if (exclude !== 'agent' && f.agent && r.agent !== f.agent) return false;
       return true;
     }
 
@@ -2424,6 +2536,18 @@
         we.appendChild(o);
       });
       we.value = semaineValues.includes(prevSemaine) ? prevSemaine : '';
+
+      // Agent
+      const ae = document.getElementById('filterAgent');
+      if (ae) {
+        const prevAgent = ae.value;
+        const agentValues = [...new Set(rowsForFacet('agent').map(r => r.agent))]
+          .filter(a => a && a !== '0')
+          .sort();
+        ae.innerHTML = '<option value="">Tous les agents</option>';
+        agentValues.forEach(a => { const o = document.createElement('option'); o.value = a; o.textContent = a; ae.appendChild(o); });
+        ae.value = agentValues.includes(prevAgent) ? prevAgent : '';
+      }
     }
 
     function populateFilters() {
@@ -2445,6 +2569,12 @@
 
     // ── Changement de zone : met à jour en cascade tous les autres filtres ────────
     function onZoneChange() {
+      updateAllFilterOptions();
+      applyFilters();
+    }
+
+    // ── Changement d'agent : met à jour en cascade tous les autres filtres ────────
+    function onAgentChange() {
       updateAllFilterOptions();
       applyFilters();
     }
@@ -2500,11 +2630,13 @@
       const mois = document.getElementById('filterMois').value;
       const semaine = document.getElementById('filterSemaine').value;
       const zone = document.getElementById('filterZone').value;
+      const agent = document.getElementById('filterAgent') ? document.getElementById('filterAgent').value : '';
 
       filtered = RAW_DATA.filter(r => {
         if (pole && r.pole !== pole) return false;
         if (sous.length && !sous.includes(r.sous)) return false;
         if (zone && getZone(r.sous) !== zone) return false;
+        if (agent && r.agent !== agent) return false;
 
         // Filtre par mois (si sélectionné)
         if (mois) {
@@ -2539,6 +2671,7 @@
       document.getElementById('filterMois').value = '';
       document.getElementById('filterSemaine').value = '';
       document.getElementById('filterZone').value = '';
+      if (document.getElementById('filterAgent')) document.getElementById('filterAgent').value = '';
 
       // Repeuple toutes les listes de filtres (cascade) sans aucun critère actif
       updateAllFilterOptions();
@@ -2860,6 +2993,99 @@
           `<td class="num"><span class="pill ${tauxCls}">${tauxPerd.toFixed(1)}%</span></td>` +
           `<td class="num">${slPct !== null ? pillQS(parseFloat(slPct), objectifSLSous) : '<span class="pill pill-amber">—</span>'}</td>` +
           `<td class="num">${fcrPct !== null ? pillQS(parseFloat(fcrPct)) : '<span class="pill pill-amber">—</span>'}</td>`;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // ─── TABLEAU DÉTAIL PAR AGENT ─────────────────────────────────────────────────
+    function renderTableAgent(data) {
+      const poleFiltreA = document.getElementById('filterPole') ? document.getElementById('filterPole').value : '';
+      const zoneFiltreA = document.getElementById('filterZone') ? document.getElementById('filterZone').value : '';
+      const objectifQSA = getObjectifQS(poleFiltreA, zoneFiltreA);
+      const objectifSLA = getObjectifSL(zoneFiltreA);
+      const objectifFCRA = getObjectifFCR(poleFiltreA);
+      const g = {};
+      data.forEach(r => {
+        if (!r.agent || r.agent === '0') return;
+        if (!g[r.agent]) g[r.agent] = { entrants: 0, traites: 0, sl20: 0, fcr: 0, dmtW: 0, dmtT: 0, nom: '' };
+        const d = g[r.agent];
+        d.entrants += r.entrants;
+        d.traites += r.traites;
+        d.sl20 += r.sl20;
+        d.fcr += r.fcr;
+        if (r.dmt > 0) { d.dmtW += r.dmt * (r.traites || 1); d.dmtT += (r.traites || 1); }
+        if (!d.nom && r.agentNom) d.nom = r.agentNom;
+      });
+      const keys = Object.keys(g).sort((a, b) => g[b].traites - g[a].traites);
+      document.getElementById('agentBadge').textContent = keys.length + ' agent(s)';
+      const tbody = document.getElementById('tbodyAgent');
+      tbody.innerHTML = '';
+      if (!keys.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Aucune donnée agent disponible</td></tr>'; return; }
+      keys.forEach(k => {
+        const d = g[k];
+        const label = d.nom || k; // Affiche le nom de l'agent si disponible, sinon retombe sur son identifiant
+        const dmtMoy = d.dmtT ? Math.round(d.dmtW / d.dmtT) : null;
+        const qsPct = d.entrants > 0 ? (d.traites / d.entrants * 100).toFixed(1) : null;
+        const slPct = d.traites && d.sl20 > 0 ? (d.sl20 / d.traites * 100).toFixed(1) : null;
+        const fcrPct = d.traites && d.fcr > 0 ? (d.fcr / d.traites * 100).toFixed(1) : null;
+        const tr = document.createElement('tr');
+        tr.innerHTML =
+          `<td><strong>${label}</strong></td>` +
+          `<td class="num-tiffany">${d.traites.toLocaleString('fr-FR')}</td>` +
+          `<td class="num-grey">${fmtHHMMSS(dmtMoy)}</td>` +
+          `<td class="num">${qsPct !== null ? pillQS(parseFloat(qsPct), objectifQSA) : '<span class="pill pill-amber">—</span>'}</td>` +
+          `<td class="num">${slPct !== null ? pillQS(parseFloat(slPct), objectifSLA) : '<span class="pill pill-amber">—</span>'}</td>` +
+          `<td class="num-grey">${d.fcr.toLocaleString('fr-FR')}</td>` +
+          `<td class="num">${fcrPct !== null ? pillQS(parseFloat(fcrPct), objectifFCRA) : '<span class="pill pill-amber">—</span>'}</td>`;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // ─── TABLEAU DÉTAIL PAR HEURE ─────────────────────────────────────────────────
+    function renderTableHeure(data) {
+      const poleFiltreH = document.getElementById('filterPole') ? document.getElementById('filterPole').value : '';
+      const zoneFiltreH = document.getElementById('filterZone') ? document.getElementById('filterZone').value : '';
+      const objectifQSH = getObjectifQS(poleFiltreH, zoneFiltreH);
+      const objectifSLH = getObjectifSL(zoneFiltreH);
+      const objectifFCRH = getObjectifFCR(poleFiltreH);
+      const g = {};
+      data.forEach(r => {
+        if (r.heure === null || r.heure === undefined) return;
+        const key = String(r.heure).padStart(2, '0');
+        if (!g[key]) g[key] = { entrants: 0, traites: 0, sl20: 0, fcr: 0, dmtW: 0, dmtT: 0 };
+        const d = g[key];
+        d.entrants += r.entrants;
+        d.traites += r.traites;
+        d.sl20 += r.sl20;
+        d.fcr += r.fcr;
+        if (r.dmt > 0) { d.dmtW += r.dmt * (r.traites || 1); d.dmtT += (r.traites || 1); }
+      });
+      const keys = Object.keys(g).sort();
+      document.getElementById('heureBadge').textContent = keys.length + ' tranche(s) horaire(s)';
+      const tbody = document.getElementById('tbodyHeure');
+      tbody.innerHTML = '';
+      if (!keys.length) { tbody.innerHTML = '<tr><td colspan="10" class="empty-state">Aucune colonne heure détectée dans la source</td></tr>'; return; }
+      keys.forEach(k => {
+        const d = g[k];
+        const perdus = Math.max(0, d.entrants - d.traites);
+        const tauxPerd = d.entrants > 0 ? (perdus / d.entrants * 100) : 0;
+        const dmtMoy = d.dmtT ? Math.round(d.dmtW / d.dmtT) : null;
+        const qsPct = d.entrants > 0 ? (d.traites / d.entrants * 100).toFixed(1) : null;
+        const slPct = d.traites && d.sl20 > 0 ? (d.sl20 / d.traites * 100).toFixed(1) : null;
+        const fcrPct = d.traites && d.fcr > 0 ? (d.fcr / d.traites * 100).toFixed(1) : null;
+        const tauxCls = tauxPerd < 5 ? 'pill-green' : tauxPerd < 15 ? 'pill-amber' : 'pill-red';
+        const tr = document.createElement('tr');
+        tr.innerHTML =
+          `<td><strong>${k}h</strong></td>` +
+          `<td class="num mono">${d.entrants.toLocaleString('fr-FR')}</td>` +
+          `<td class="num-tiffany">${d.traites.toLocaleString('fr-FR')}</td>` +
+          `<td class="num-red">${perdus > 0 ? perdus.toLocaleString('fr-FR') : '<span style="color:#0abfbc;font-family:\'JetBrains Mono\',monospace;font-size:0.76rem;">0</span>'}</td>` +
+          `<td class="num-grey">${d.fcr.toLocaleString('fr-FR')}</td>` +
+          `<td class="num-grey">${fmtHHMMSS(dmtMoy)}</td>` +
+          `<td class="num">${qsPct !== null ? pillQS(parseFloat(qsPct), objectifQSH) : '<span class="pill pill-amber">—</span>'}</td>` +
+          `<td class="num"><span class="pill ${tauxCls}">${tauxPerd.toFixed(1)}%</span></td>` +
+          `<td class="num">${slPct !== null ? pillQS(parseFloat(slPct), objectifSLH) : '<span class="pill pill-amber">—</span>'}</td>` +
+          `<td class="num">${fcrPct !== null ? pillQS(parseFloat(fcrPct), objectifFCRH) : '<span class="pill pill-amber">—</span>'}</td>`;
         tbody.appendChild(tr);
       });
     }
@@ -3358,7 +3584,7 @@
       }).join('');
     }
 
-    function renderAll() { renderKPIs(computeKPIs(filtered)); renderTableSous(filtered); renderChart(filtered); renderDailyTable1(filtered); renderMonthlyTable1(filtered); renderWeeklyTable1(filtered); }
+    function renderAll() { renderKPIs(computeKPIs(filtered)); renderTableSous(filtered); renderTableAgent(filtered); renderTableHeure(filtered); renderChart(filtered); renderDailyTable1(filtered); renderMonthlyTable1(filtered); renderWeeklyTable1(filtered); }
     function showLoading(msg) { document.getElementById('loadingMsg').textContent = msg; document.getElementById('loadingOverlay').classList.remove('hidden'); }
     function hideLoading() { document.getElementById('loadingOverlay').classList.add('hidden'); }
     function showError(msg) { const el = document.getElementById('errorBanner'); el.innerHTML = '⚠️ ' + msg; el.classList.add('show'); }
