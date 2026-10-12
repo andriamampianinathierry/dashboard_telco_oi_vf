@@ -1979,6 +1979,9 @@
       mois: ['mois', 'month'],
     };
 
+    // Colonne AH du Google Sheet (A=0 … Z=25, AA=26 … AH=33) : "FCR 2026"
+    const AH_COL_INDEX = 33;
+
     // ─── STATE ────────────────────────────────────────────────────────────────────
     let RAW_DATA = [], filtered = [], chart = null;
     let selectedSous = []; // Sous-campagnes sélectionnées (filtre multi-sélection)
@@ -2281,9 +2284,9 @@
         const mois = toText(get('mois')) || '';
         const heure = extractHeure(rawDate, get('heure'));
 
-        // ── Qualification ──
-        const qualifRaw = toText(get('qualif')).toUpperCase().trim();
-        const isQualifie = qualifRaw === 'QUALIFIE' || qualifRaw === 'QUALIFIÉ';
+        // ── FCR 2026 (colonne AH du Google Sheet = 34e colonne → index 33) ──
+        // Sert de numérateur au "Taux Qualifié" = FCR 2026 / Appels traités
+        const fcr2026 = AH_COL_INDEX < row.length ? toNum(row[AH_COL_INDEX]) : 0;
 
         // ── Validation cohérence ──
         if (entrants === 0 && traites === 0 && sous === 'Non défini') {
@@ -2294,7 +2297,7 @@
         RAW_DATA.push({
           date: isoDate, pole, sous, file, agent, agentNom, mois, heure,
           entrants, traites, sl20, sl10, fcr, dmt, dureePostTravail, dureeAppel, dmpc, dureePriseEnCharge,
-          qualifie: isQualifie ? 1 : 0,
+          qualifie: fcr2026, // FCR 2026 (colonne AH) — agrégé ensuite comme numérateur du Taux Qualifié
         });
       });
 
@@ -2867,8 +2870,8 @@
       set('kpiDmpc', kpi.dmpc !== null ? fmtHHMMSS(kpi.dmpc) : '—');
       set('kpiDmc', kpi.tauxQualifie !== null ? kpi.tauxQualifie + '%' : '—');
       set('kpiDmcSub', kpi.tauxQualifie !== null
-        ? kpi.totalQualifie.toLocaleString('fr-FR') + ' qualifié / ' + kpi.totalTraites.toLocaleString('fr-FR') + ' appels traités'
-        : 'Colonne NOM_QUALIFICATION non détectée');
+        ? kpi.totalQualifie.toLocaleString('fr-FR') + ' FCR 2026 / ' + kpi.totalTraites.toLocaleString('fr-FR') + ' appels traités'
+        : 'FCR 2026 (colonne AH) / Appels traités');
       set('kpiQs', kpi.qs + '%');
       set('kpiSl', kpi.sl !== null ? kpi.sl + '%' : '—');
       set('kpiFcr', kpi.fcr !== null ? kpi.fcr + '%' : '—');
